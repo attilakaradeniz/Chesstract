@@ -426,3 +426,12 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Visual Studio build outputs
+[Bb]in/
+[Oo]bj/
+[Xx]64/
+*.exe
+*.dll
+
+
