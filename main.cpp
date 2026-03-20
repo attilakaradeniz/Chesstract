@@ -1,4 +1,5 @@
 #include <iostream>
+#include <SFML/Graphics.hpp>
 #include "Board.hpp"
 
 /**
@@ -23,7 +24,21 @@ int main() {
 
 
     // Wait for user input before closing the console
-    std::cin.get();
+    // std::cin.get();
+
+    // SFML window object 
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Chesstract - visual test");
+
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+        window.clear(sf::Color::Blue);
+        // Here comes chess board and pieces
+        window.display();
+	}
 
     return 0;
 }
