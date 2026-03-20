@@ -2,19 +2,27 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-enum class PieceType { Empty, Pawn, Rook, Knight, Bishop, Queen, King };
+// Pieces types and colors
+enum class PieceType {
+    Empty,
+    W_Pawn, W_Rook, W_Knight, W_Bishop, W_Queen, W_King,
+    B_Pawn, B_Rook, B_Knight, B_Bishop, B_Queen, B_King
+};
 
 class Board {
 public:
     Board();
     void printStatus();
-
-    // New function: draws the 8x8 grid to the window
     void draw(sf::RenderWindow& window);
 
 private:
     PieceType grid[8][8];
-    const float tileSize = 100.f; // Each square is 100x100 pixels
-	float offset = 50.f; // Offset for centering the board in the window
-    const float setPosition = 100.f;
+    const float tileSize = 100.f;
+    float offset = 50.f;
+
+    // SFML Görsel Nesneleri
+    sf::Texture piecesTexture;
+    sf::Sprite pieceSprite;
+
+    void loadAssets(); // to load asset
 };
