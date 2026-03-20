@@ -1,18 +1,20 @@
-// Board.hpp
-#ifndef BOARD_HPP
-#define	BOARD_HPP
+#pragma once
+#include <SFML/Graphics.hpp>
 #include <iostream>
 
-// enum for piece types
-enum class PieceType {Empty, Pawn, Rook, Knight, Bishop, Queen, King};
-enum class PieceColor {None, White, Black};
+enum class PieceType { Empty, Pawn, Rook, Knight, Bishop, Queen, King };
 
 class Board {
 public:
-	Board(); // Constructor
-	void printStatus(); // to test the output
-private:
-	PieceType grid[8][8];
-};
+    Board();
+    void printStatus();
 
-#endif // !1
+    // New function: draws the 8x8 grid to the window
+    void draw(sf::RenderWindow& window);
+
+private:
+    PieceType grid[8][8];
+    const float tileSize = 100.f; // Each square is 100x100 pixels
+	float offset = 50.f; // Offset for centering the board in the window
+    const float setPosition = 100.f;
+};

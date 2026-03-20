@@ -37,3 +37,21 @@ Board::Board() {
 void Board::printStatus() {
 	std::cout << "Board is ready for piecec." << std::endl;
 }
+
+void Board::draw(sf::RenderWindow& window) {
+	for (int i = 0; i < 8; ++i) {
+		for (int j = 0; j < 8; ++j) {
+			sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
+			square.setPosition(j * tileSize + offset, i * tileSize + offset);
+			
+			if ((i + j) % 2 == 0) {
+				 square.setFillColor(sf::Color(240, 217, 181)); // light color (brownish)
+				 // square.setFillColor(sf::Color(238, 238, 210)); // light color (yellowish)
+			} else {
+				square.setFillColor(sf::Color(181, 136, 99)); // dark color (brownish)	
+				// square.setFillColor(sf::Color(118, 150, 86)); // dark color (yellowish)
+			}
+			window.draw(square);
+		}
+	}
+}

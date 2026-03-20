@@ -18,16 +18,18 @@ int main() {
 
     std::cout << "\nInitializing chess board..." << std::endl;
 
-    Board myBoard;
+    //Board myBoard;
 
-    myBoard.printStatus();
+    // myBoard.printStatus();
 
 
     // Wait for user input before closing the console
     // std::cin.get();
 
     // SFML window object 
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Chesstract - visual test");
+    sf::RenderWindow window(sf::VideoMode(900, 900), "Chesstract - board render");
+
+	Board myBoard;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -35,8 +37,11 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
-        window.clear(sf::Color::Blue);
+        // window.clear(sf::Color::Blue);
+        window.clear();
         // Here comes chess board and pieces
+		myBoard.draw(window);
+        
         window.display();
 	}
 
