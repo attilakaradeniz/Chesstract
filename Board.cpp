@@ -40,57 +40,82 @@ void Board::printStatus() {
 }
 
 void Board::draw(sf::RenderWindow& window) {
-    int size = 45; // Senin resmindeki gerçek taş boyutu
+	const int sourceSize = 45; // original size of pieces in the texture
+    const float scale = tileSize / (float)sourceSize;
+    pieceSprite.setScale(scale, scale);
 
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
-            // 1. Kareyi çiz (Mevcut kodun)
+            // draw 1st square
             sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
             square.setPosition(j * tileSize + offset, i * tileSize + offset);
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(240, 217, 181) : sf::Color(181, 136, 99));
             window.draw(square);
 
-            // 2. Taşı çiz
+			// highlight selected square
+            if (selectedSquare != sf::Vector2i(-1, -1)) {
+                sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
+                highlight.setPosition(selectedSquare.x * tileSize + offset, selectedSquare.y * tileSize + offset);
+				highlight.setFillColor(sf::Color(255, 255, 0, 05)); // semi opaque yellow
+                window.draw(highlight);
+            }
+
+
+            // 2. piece drawing (via Lookup Table )
             PieceType type = grid[i][j];
             if (type != PieceType::Empty) {
-                int row = 0;
-                int col = 0;
+                PieceSource src = pieceSourceMap[type];
 
-                // Resmindeki sıralama genelde şöyledir (K, Q, B, N, R, P)
-                // Eğer taşlar yanlış çıkarsa buradaki 'col' değerlerini değiştiririz
-                if (type == PieceType::W_King) { col = 0; row = 0; }
-                if (type == PieceType::W_Queen) { col = 1; row = 0; }
-                if (type == PieceType::W_Bishop) { col = 2; row = 0; }
-                if (type == PieceType::W_Knight) { col = 3; row = 0; }
-                if (type == PieceType::W_Rook) { col = 4; row = 0; }
-                if (type == PieceType::W_Pawn) { col = 5; row = 0; }
-
-                if (type == PieceType::B_King) { col = 0; row = 1; }
-                if (type == PieceType::B_Queen) { col = 1; row = 1; }
-                if (type == PieceType::B_Bishop) { col = 2; row = 1; }
-                if (type == PieceType::B_Knight) { col = 3; row = 1; }
-                if (type == PieceType::B_Rook) { col = 4; row = 1; }
-                if (type == PieceType::B_Pawn) { col = 5; row = 1; }
-
-                // 45x45'lik alanı kesiyoruz
-                pieceSprite.setTextureRect(sf::IntRect(col * size, row * size, size, size));
-
-                // ÖLÇEKLENDİRME: 45 piksellik taşı 100 piksellik kareye yayıyoruz
-                // 100 / 45 = 2.22 kat büyütüyoruz
-                float scale = tileSize / (float)size;
-                pieceSprite.setScale(scale, scale);
-
+                pieceSprite.setTextureRect(sf::IntRect(src.col * sourceSize, src.row * sourceSize, sourceSize, sourceSize));
                 pieceSprite.setPosition(j * tileSize + offset, i * tileSize + offset);
+
                 window.draw(pieceSprite);
             }
         }
     }
 }
+
+void Board::setupPieceSources() {
+    pieceSourceMap[PieceType::W_King] = { 0, 0 };
+    pieceSourceMap[PieceType::W_Queen] = { 1, 0 };
+    pieceSourceMap[PieceType::W_Bishop] = { 2, 0 };
+    pieceSourceMap[PieceType::W_Knight] = { 3, 0 };
+    pieceSourceMap[PieceType::W_Rook] = { 4, 0 };
+    pieceSourceMap[PieceType::W_Pawn] = { 5, 0 };
+
+    pieceSourceMap[PieceType::B_King] = { 0, 1 };
+    pieceSourceMap[PieceType::B_Queen] = { 1, 1 };
+    pieceSourceMap[PieceType::B_Bishop] = { 2, 1 };
+    pieceSourceMap[PieceType::B_Knight] = { 3, 1 };
+    pieceSourceMap[PieceType::B_Rook] = { 4, 1 };
+    pieceSourceMap[PieceType::B_Pawn] = { 5, 1 };
+}
 void Board::loadAssets() {
-    // Proje klasöründeki assets/pieces.png yoluna bakar
+	// loading pieces.png file
     if (!piecesTexture.loadFromFile("assets/pieces.png")) {
-        std::cerr << "HATA: assets/pieces.png yuklenemedi! Dosya yolunu kontrol et." << std::endl;
+        std::cerr << "ERROR: assets/pieces.png couldnt load! File path needs to be checked." << std::endl;
     }
-    // Sprite nesnesine dokuyu bağlıyoruz
+	setupPieceSources();
+	// setting texture to sprite for later use
     pieceSprite.setTexture(piecesTexture);
+}
+
+void Board::handleMouseClick(sf::Vector2i mousePos) {
+    // from offset to square size
+    int col = (mousePos.x - (int)offset) / (int)tileSize;
+    int row = (mousePos.y - (int)offset) / (int)tileSize;
+
+    // Tıklanan yer tahta sınırları içinde mi?
+    if (col >= 0 && col < 8 && row >= 0 && row < 8) {
+        selectedSquare = sf::Vector2i(col, row);
+        std::cout << "clicked square: " << row << ", " << col << std::endl;
+
+        // if there is a piece print its type (test)
+        if (grid[row][col] != PieceType::Empty) {
+            std::cout << "There is a piece here!" << std::endl;
+        }
+    }
+    else {
+		selectedSquare = sf::Vector2i(-1, -1); // unselect if clicked outside
+    }
 }

@@ -1,6 +1,12 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <map>
+
+struct PieceSource {
+    int col;
+    int row;
+};
 
 // Pieces types and colors
 enum class PieceType {
@@ -15,14 +21,19 @@ public:
     void printStatus();
     void draw(sf::RenderWindow& window);
 
+    void handleMouseClick(const sf::Vector2i mousePos);
+
 private:
     PieceType grid[8][8];
     const float tileSize = 100.f;
     float offset = 50.f;
+    std::map<PieceType, PieceSource> pieceSourceMap;
+    void setupPieceSources();
 
-    // SFML Görsel Nesneleri
+	// SFML visual assets
     sf::Texture piecesTexture;
     sf::Sprite pieceSprite;
+	sf::Vector2i selectedSquare = sf::Vector2i(-1, -1); // No square selected
 
     void loadAssets(); // to load asset
 };

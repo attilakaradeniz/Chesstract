@@ -34,6 +34,12 @@ int main() {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
+            if (event.type == sf::Event::MouseButtonPressed) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                    myBoard.handleMouseClick(mousePos);
+                }
+            }
             if (event.type == sf::Event::Closed)
                 window.close();
         }
