@@ -39,7 +39,12 @@ private:
     bool blackKingMoved = false;
     bool blackRook0Moved = false; // black left rook (a8)
     bool blackRook7Moved = false; // black right rook (h8)
-
+    // Checks if a specific square (row, col) is under attack by a specific color
+    bool isSquareAttacked(int row, int col, bool attackerIsWhite);
+    // for the algebric notation
+    char getPieceChar(PieceType type);
+    // to find  if it is check
+    sf::Vector2i findKing(bool white);
 
 	// SFML visual assets
     sf::Texture piecesTexture;
@@ -49,4 +54,11 @@ private:
     void loadAssets(); // to load asset
 
     bool isWhite(PieceType type); // Add this helper function here
+
+    bool hasLegalMoves(bool white);
+
+    sf::Font font;
+    bool gameOver = false;
+    std::string resultText = "";
+    void checkGameEnd();
 };
