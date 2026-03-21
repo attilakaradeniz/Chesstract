@@ -66,22 +66,144 @@ void Board::setupPieceSources() {
 
 bool Board::isMoveValid(int startRow, int startCol, int endRow, int endCol) {
     PieceType movingPiece = grid[startRow][startCol];
-
-    // Simple rule: Cannot move to the same square
     if (startRow == endRow && startCol == endCol) return false;
 
-    // Specific piece logic
+    // Movement differences
+    int rowDiff = std::abs(startRow - endRow);
+    int colDiff = std::abs(startCol - endCol);
+
     switch (movingPiece) {
     case PieceType::W_Knight:
     case PieceType::B_Knight: {
-        int rowDiff = std::abs(startRow - endRow);
-        int colDiff = std::abs(startCol - endCol);
         // Knight moves in an 'L' shape: (2,1) or (1,2)
         return (rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2);
     }
-                            // Add logic for other pieces here
+
+    case PieceType::W_Rook:
+    case PieceType::B_Rook: {
+        // Rook must move either horizontally or vertically
+        if (startRow != endRow && startCol != endCol) return false;
+
+        // Determine direction of movement (1, -1, or 0)
+        int rowStep = (endRow == startRow) ? 0 : (endRow > startRow ? 1 : -1);
+        int colStep = (endCol == startCol) ? 0 : (endCol > startCol ? 1 : -1);
+
+        int currentRow = startRow + rowStep;
+        int currentCol = startCol + colStep;
+
+        // Check every square between start and end (exclusive)
+        while (currentRow != endRow || currentCol != endCol) {
+            if (grid[currentRow][currentCol] != PieceType::Empty) {
+                return false; // Path is blocked by another piece
+            }
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        return true;
+    }
+
+    case PieceType::W_Bishop:
+    case PieceType::B_Bishop: {
+        int rowDiff = std::abs(startRow - endRow);
+        int colDiff = std::abs(startCol - endCol);
+
+        // 1. Bishop must move diagonally (row change == col change)
+        if (rowDiff != colDiff) return false;
+
+        // 2. Determine diagonal direction (+1 or -1)
+        int rowStep = (endRow > startRow) ? 1 : -1;
+        int colStep = (endCol > startCol) ? 1 : -1;
+
+        int currentRow = startRow + rowStep;
+        int currentCol = startCol + colStep;
+
+        // 3. Check every square along the diagonal (exclusive)
+        while (currentRow != endRow && currentCol != endCol) {
+            if (grid[currentRow][currentCol] != PieceType::Empty) {
+                return false; // Path is blocked by another piece
+            }
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        return true;
+    }
+
+    case PieceType::W_Queen:
+    case PieceType::B_Queen: {
+        int rowDiff = std::abs(startRow - endRow);
+        int colDiff = std::abs(startCol - endCol);
+
+        // 1. Queen must move either horizontally, vertically, OR diagonally
+        bool isHorizontalOrVertical = (startRow == endRow || startCol == endCol);
+        bool isDiagonal = (rowDiff == colDiff);
+
+        if (!isHorizontalOrVertical && !isDiagonal) return false;
+
+        // 2. Determine step direction (works for all 8 directions)
+        int rowStep = (endRow == startRow) ? 0 : (endRow > startRow ? 1 : -1);
+        int colStep = (endCol == startCol) ? 0 : (endCol > startCol ? 1 : -1);
+
+        int currentRow = startRow + rowStep;
+        int currentCol = startCol + colStep;
+
+        // 3. Path checking (same logic as Rook and Bishop)
+        while (currentRow != endRow || currentCol != endCol) {
+            if (grid[currentRow][currentCol] != PieceType::Empty) {
+                return false; // Blocked!
+            }
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        return true;
+    }
+
+    case PieceType::W_King:
+    case PieceType::B_King: {
+        int rowDiff = std::abs(startRow - endRow);
+        int colDiff = std::abs(startCol - endCol);
+
+        // King can move exactly 1 square in any direction
+        // (rowDiff <= 1 AND colDiff <= 1) covers all 8 neighbor squares
+        if (rowDiff <= 1 && colDiff <= 1) {
+            return true;
+        }
+
+        return false; // Cannot move more than 1 square
+    }
+
+    case PieceType::W_Pawn:
+    case PieceType::B_Pawn: {
+        int rowDiff = endRow - startRow; // rowDiff positive means going DOWN, negative means UP
+        int colDiff = std::abs(startCol - endCol);
+        int direction = (movingPiece == PieceType::W_Pawn) ? -1 : 1; // White goes up (-1), Black goes down (+1)
+        int startRowPos = (movingPiece == PieceType::W_Pawn) ? 6 : 1; // Starting row for pawns
+
+        PieceType targetPiece = grid[endRow][endCol];
+
+        // 1. Moving forward 1 square
+        if (colDiff == 0 && rowDiff == direction && targetPiece == PieceType::Empty) {
+            return true;
+        }
+
+        // 2. Initial double move (2 squares)
+        if (colDiff == 0 && startRow == startRowPos && rowDiff == 2 * direction) {
+            // Path check: The square in between must be empty too
+            if (grid[startRow + direction][startCol] == PieceType::Empty && targetPiece == PieceType::Empty) {
+                return true;
+            }
+        }
+
+        // 3. Capturing diagonally
+        if (colDiff == 1 && rowDiff == direction && targetPiece != PieceType::Empty) {
+            // We already check "don't eat own color" in handleMouseClick, so if it's not Empty, it's an enemy.
+            return true;
+        }
+
+        return false; // Any other move is illegal
+    }
+
     default:
-        return true; // Temporary: Allow other pieces to move anywhere
+        return true; // Other pieces can still move freely for now
     }
 }
 
