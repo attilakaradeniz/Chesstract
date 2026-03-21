@@ -49,6 +49,9 @@ int main() {
                 if (event.key.code == sf::Keyboard::U) {
                     myBoard.undoMove(); // Revert the last move
                 }
+                if (event.key.code == sf::Keyboard::F) {
+                    myBoard.flipBoard(); // Flip the board orientation
+				}
             }
 
             if (event.type == sf::Event::Closed)

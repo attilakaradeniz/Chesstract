@@ -307,6 +307,12 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
     int col = (mousePos.x - (int)offset) / (int)tileSize;
     int row = (mousePos.y - (int)offset) / (int)tileSize;
 
+    // adjust for flip
+    if (isFlowFlipped) {
+        col = 7 - col;
+		row = 7 - row;      
+    }
+
     if (col < 0 || col >= 8 || row < 0 || row >= 8) return;
 
     if (selectedSquare != sf::Vector2i(-1, -1)) {
@@ -446,75 +452,48 @@ void Board::draw(sf::RenderWindow& window) {
     const float scale = tileSize / (float)sourceSize;
     pieceSprite.setScale(scale, scale);
 
-    // 1. Draw the board and the pieces first
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            // Draw square
+    // --- 1. Draw Chess Board and Pieces ---
+    for (int i = 0; i < 8; ++i) { // i = Logical Row (0-7)
+        for (int j = 0; j < 8; ++j) { // j = Logical Column (0-7)
+
+            // Calculate visual position based on flip status
+            int renderRow = isFlowFlipped ? (7 - i) : i;
+            int renderCol = isFlowFlipped ? (7 - j) : j;
+
+            // Draw individual square
             sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
-            square.setPosition(j * tileSize + offset, i * tileSize + offset);
-            // default colotr set  below""
-            square.setFillColor(((i + j) % 2 == 0) ? sf::Color(240, 217, 181) : sf::Color(181, 136, 99));
-            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(200, 100, 100) : sf::Color(130, 255, 5)); // XXXX
-            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
-            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(135, 135, 110) : sf::Color(38, 25, 25));
-            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(240, 240, 240) : sf::Color(135, 30, 30));
+            square.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
+
+            // Standard chess pattern logic (i+j)
+            square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
             window.draw(square);
 
-            // Draw selection highlight
+            // Draw selection highlight if this square is selected
             if (selectedSquare == sf::Vector2i(j, i)) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
-                highlight.setPosition(j * tileSize + offset, i * tileSize + offset);
+                highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
                 highlight.setFillColor(sf::Color(255, 255, 0, 80));
                 window.draw(highlight);
             }
 
-            // Draw pieces
+            // Draw the piece occupying this square
             PieceType type = grid[i][j];
             if (type != PieceType::Empty) {
                 PieceSource src = pieceSourceMap[type];
                 pieceSprite.setTextureRect(sf::IntRect(src.col * sourceSize, src.row * sourceSize, sourceSize, sourceSize));
-                pieceSprite.setPosition(j * tileSize + offset, i * tileSize + offset);
+                pieceSprite.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
                 window.draw(pieceSprite);
             }
         }
     }
 
-    // 2. Overlay Layer: Show Game Over screen if the game has ended
-    // This must be drawn last to appear on top of everything
-    if (gameOver) {
-        // Semi-transparent black rectangle to dim the board
-        sf::RectangleShape overlay(sf::Vector2f(tileSize * 8, tileSize * 8));
-        overlay.setPosition(offset, offset);
-        overlay.setFillColor(sf::Color(0, 0, 0, 180)); // 180 is the alpha (transparency)
-        window.draw(overlay);
-
-        // Result Text configuration
-        sf::Text text;
-        text.setFont(font);
-        text.setString(resultText);
-        text.setCharacterSize(50);
-        text.setFillColor(sf::Color::White);
-        text.setStyle(sf::Text::Bold);
-
-        // Center the text based on its local bounds
-        sf::FloatRect textRect = text.getLocalBounds();
-        text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
-
-        // Position the text at the center of the 8x8 board
-        float centerX = (tileSize * 8) / 2.0f + offset;
-        float centerY = (tileSize * 8) / 2.0f + offset;
-        text.setPosition(centerX, centerY);
-
-        window.draw(text);
-    }
-
-    // --- Draw Side Panel Background ---
+    // --- 2. Draw Side Panel (Notation UI) ---
     sf::RectangleShape sidePanel(sf::Vector2f(300, 900));
-    sidePanel.setPosition(900, 0); // Start right after the 900px board
-    sidePanel.setFillColor(sf::Color(45, 45, 45)); // Dark charcoal gray
+    sidePanel.setPosition(900, 0);
+    sidePanel.setFillColor(sf::Color(45, 45, 45)); // Charcoal Gray
     window.draw(sidePanel);
 
-    // --- Draw Notation Title ---
+    // Header for the side panel
     sf::Text title;
     title.setFont(font);
     title.setString("Move History");
@@ -523,7 +502,7 @@ void Board::draw(sf::RenderWindow& window) {
     title.setPosition(920, 20);
     window.draw(title);
 
-    // --- Render Moves from history ---
+    // Render individual moves from history
     sf::Text moveText;
     moveText.setFont(font);
     moveText.setCharacterSize(18);
@@ -535,28 +514,43 @@ void Board::draw(sf::RenderWindow& window) {
 
     for (size_t i = 0; i < moveHistory.size(); ++i) {
         int turnNumber = (i / 2) + 1;
-        bool isWhite = (i % 2 == 0);
+        bool isWhiteMove = (i % 2 == 0);
 
-        // Calculate position: 2 columns (White on left, Black on right)
-        float xPos = isWhite ? startX : startX + 130;
+        float xPos = isWhiteMove ? startX : startX + 130;
         float yPos = startY + ((turnNumber - 1) * lineHeight);
 
-        std::string moveStr = "";
-        if (isWhite) {
-            moveStr = std::to_string(turnNumber) + ". " + moveHistory[i].notation;
-        }
-        else {
-            moveStr = moveHistory[i].notation;
-        }
+        std::string moveStr = isWhiteMove ? (std::to_string(turnNumber) + ". " + moveHistory[i].notation)
+            : moveHistory[i].notation;
 
         moveText.setString(moveStr);
         moveText.setPosition(xPos, yPos);
-        window.draw(moveText);
 
-        // Simple overflow prevention: Stop drawing if we hit the bottom of the screen
-        if (yPos > 850) break;
+        // Stop rendering if moves go beyond window height
+        if (yPos < 860) {
+            window.draw(moveText);
+        }
     }
 
+    // --- 3. Draw Game Over Overlay ---
+    if (gameOver) {
+        sf::RectangleShape overlay(sf::Vector2f(tileSize * 8, tileSize * 8));
+        overlay.setPosition(offset, offset);
+        overlay.setFillColor(sf::Color(0, 0, 0, 180));
+        window.draw(overlay);
+
+        sf::Text text;
+        text.setFont(font);
+        text.setString(resultText);
+        text.setCharacterSize(50);
+        text.setFillColor(sf::Color::White);
+        text.setStyle(sf::Text::Bold);
+
+        sf::FloatRect textRect = text.getLocalBounds();
+        text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+        text.setPosition((tileSize * 8) / 2.0f + offset, (tileSize * 8) / 2.0f + offset);
+
+        window.draw(text);
+    }
 }
 
 void Board::printStatus() {
@@ -665,5 +659,10 @@ void Board::undoMove() {
     gameOver = false;
 
     std::cout << "Undo successful. Turn is now " << (whiteTurn ? "White" : "Black") << "." << std::endl;
+}
+
+void Board::flipBoard() {
+	isFlowFlipped = !isFlowFlipped;
+	std::cout << "Board flipped. " << (isFlowFlipped ? "Black at bottom." : "White at bottom.") << std::endl;
 }
 

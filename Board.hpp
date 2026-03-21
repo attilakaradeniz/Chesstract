@@ -45,6 +45,8 @@ public:
     bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
     void undoMove(); 
     void exportPGN();
+    void flipBoard(); 
+
 
 private:
     bool whiteTurn = true; // True for White's turn, False for Black's
@@ -83,6 +85,8 @@ private:
     bool gameOver = false;
     std::string resultText = "";
     void checkGameEnd();
+
+	bool isFlowFlipped = false; // Default is white at bottom
 
 	std::vector<MoveRecord> moveHistory; // Store move history for PGN export
     // fınction to export PGN
