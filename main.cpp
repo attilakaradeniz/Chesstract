@@ -52,6 +52,9 @@ int main() {
                 if (event.key.code == sf::Keyboard::F) {
                     myBoard.flipBoard(); // Flip the board orientation
 				}
+                if (event.key.code == sf::Keyboard::C) {
+                    myBoard.toggleCoordinates();
+                }
             }
 
             if (event.type == sf::Event::Closed)

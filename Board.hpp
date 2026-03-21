@@ -46,6 +46,7 @@ public:
     void undoMove(); 
     void exportPGN();
     void flipBoard(); 
+    void toggleCoordinates();
 
 
 private:
@@ -90,5 +91,7 @@ private:
 
 	std::vector<MoveRecord> moveHistory; // Store move history for PGN export
     // fınction to export PGN
-    
+
+	bool showCoordinates = true; // Toggle for showing coordinates on the board
+     
 };

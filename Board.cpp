@@ -551,6 +551,36 @@ void Board::draw(sf::RenderWindow& window) {
 
         window.draw(text);
     }
+
+    // --- 4. Draw Board Coordinates (a-h, 1-8) ---
+    if (showCoordinates) {
+        for (int i = 0; i < 8; ++i) {
+            sf::Text coordText;
+            coordText.setFont(font);
+            coordText.setCharacterSize(14); // Slightly smaller for professional look
+
+            // 1. Numbers (1-8) - Vertical (Placed on the left edge of the first column)
+            int logicRow = isFlowFlipped ? (7 - i) : i;
+            coordText.setString(std::to_string(8 - logicRow));
+
+            // Dynamic color: Light grey on dark squares, dark grey on light squares
+            // Since it's the first column (j=0), color depends on i % 2
+            coordText.setFillColor((i % 2 == 0) ? sf::Color(180, 50, 50) : sf::Color(235, 235, 210));
+            coordText.setPosition(offset + 2, i * tileSize + offset + 2);
+            window.draw(coordText);
+
+            // 2. Letters (a-h) - Horizontal (Placed on the bottom edge of the last row)
+            int logicCol = isFlowFlipped ? (7 - i) : i;
+            std::string colLabel = "";
+            colLabel += (char)('a' + logicCol);
+            coordText.setString(colLabel);
+
+            // Dynamic color for letters: Based on (7 + i) % 2 since they are on the 7th row
+            coordText.setFillColor(((7 + i) % 2 == 0) ? sf::Color(180, 50, 50) : sf::Color(235, 235, 210));
+            coordText.setPosition(i * tileSize + offset + tileSize - 15, 7 * tileSize + offset + tileSize - 20);
+            window.draw(coordText);
+        }
+    }
 }
 
 void Board::printStatus() {
@@ -664,5 +694,10 @@ void Board::undoMove() {
 void Board::flipBoard() {
 	isFlowFlipped = !isFlowFlipped;
 	std::cout << "Board flipped. " << (isFlowFlipped ? "Black at bottom." : "White at bottom.") << std::endl;
+}
+
+void Board::toggleCoordinates() {
+    showCoordinates = !showCoordinates;
+    std::cout << "Coordinates " << (showCoordinates ? "enabled." : "disabled.") << std::endl;
 }
 
