@@ -14,23 +14,23 @@ Board::Board() {
 
     // Setup pawns
     for (int i = 0; i < 8; ++i) {
-        grid[1][i] = PieceType::W_Pawn; // White pawns
-        grid[6][i] = PieceType::B_Pawn; // Black pawns
+        grid[1][i] = PieceType::B_Pawn; // White pawns
+        grid[6][i] = PieceType::W_Pawn; // Black pawns
     }
 
     // Setup pieces (Rooks, Knights, Bishops)
-    grid[0][0] = grid[0][7] = PieceType::W_Rook;
-    grid[7][0] = grid[7][7] = PieceType::B_Rook;
+    grid[0][0] = grid[0][7] = PieceType::B_Rook;
+    grid[7][0] = grid[7][7] = PieceType::W_Rook;
 
-    grid[0][1] = grid[0][6] = PieceType::W_Knight;
-    grid[7][1] = grid[7][6] = PieceType::B_Knight;
+    grid[0][1] = grid[0][6] = PieceType::B_Knight;
+    grid[7][1] = grid[7][6] = PieceType::W_Knight;
 
-    grid[0][2] = grid[0][5] = PieceType::W_Bishop;
-    grid[7][2] = grid[7][5] = PieceType::B_Bishop;
+    grid[0][2] = grid[0][5] = PieceType::B_Bishop;
+    grid[7][2] = grid[7][5] = PieceType::W_Bishop;
 
     // Setup Kings and Queens
-    grid[0][3] = PieceType::W_Queen; grid[0][4] = PieceType::W_King;
-    grid[7][3] = PieceType::B_Queen; grid[7][4] = PieceType::B_King;
+    grid[0][3] = PieceType::B_Queen; grid[0][4] = PieceType::B_King;
+    grid[7][3] = PieceType::W_Queen; grid[7][4] = PieceType::W_King;
 
     std::cout << "Chess board logic initialized (starting position)." << std::endl;
 }
