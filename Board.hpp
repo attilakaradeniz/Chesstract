@@ -47,6 +47,7 @@ public:
     void exportPGN();
     void flipBoard(); 
     void toggleCoordinates();
+	void calculateValidMoves(int startRow, int startol);
 
 
 private:
@@ -93,5 +94,8 @@ private:
     // fınction to export PGN
 
 	bool showCoordinates = true; // Toggle for showing coordinates on the board
-     
+
+    std::vector<sf::Vector2i> validMoves;
+
+    
 };

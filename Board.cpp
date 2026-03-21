@@ -418,12 +418,16 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             // Trigger game end check
             checkGameEnd();
         }
+        // unless the move executed clear the legal moves dots
+		validMoves.clear();
+
         selectedSquare = sf::Vector2i(-1, -1);
     }
     else {
         PieceType clickedPiece = grid[row][col];
         if (clickedPiece != PieceType::Empty && isWhite(clickedPiece) == whiteTurn) {
             selectedSquare = sf::Vector2i(col, row);
+			calculateValidMoves(row, col); // For future use (highlighting valid moves)
         }
     }
 }
@@ -453,22 +457,19 @@ void Board::draw(sf::RenderWindow& window) {
     pieceSprite.setScale(scale, scale);
 
     // --- 1. Draw Chess Board and Pieces ---
-    for (int i = 0; i < 8; ++i) { // i = Logical Row (0-7)
-        for (int j = 0; j < 8; ++j) { // j = Logical Column (0-7)
+    for (int i = 0; i < 8; ++i) { // i = Logical Row
+        for (int j = 0; j < 8; ++j) { // j = Logical Column
 
-            // Calculate visual position based on flip status
             int renderRow = isFlowFlipped ? (7 - i) : i;
             int renderCol = isFlowFlipped ? (7 - j) : j;
 
             // Draw individual square
             sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
             square.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
-
-            // Standard chess pattern logic (i+j)
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
             window.draw(square);
 
-            // Draw selection highlight if this square is selected
+            // Draw selection highlight (Yellow glow)
             if (selectedSquare == sf::Vector2i(j, i)) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
                 highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
@@ -476,7 +477,7 @@ void Board::draw(sf::RenderWindow& window) {
                 window.draw(highlight);
             }
 
-            // Draw the piece occupying this square
+            // Draw the piece
             PieceType type = grid[i][j];
             if (type != PieceType::Empty) {
                 PieceSource src = pieceSourceMap[type];
@@ -487,13 +488,42 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    // --- 2. Draw Side Panel (Notation UI) ---
+    // --- 2. Draw Legal Move Indicators (Dots and Rings) ---
+    // We draw these AFTER the board and pieces so they appear on top
+    for (const auto& move : validMoves) {
+        int rRow = isFlowFlipped ? (7 - move.y) : move.y;
+        int rCol = isFlowFlipped ? (7 - move.x) : move.x;
+
+        float centerX = rCol * tileSize + offset + tileSize / 2.0f;
+        float centerY = rRow * tileSize + offset + tileSize / 2.0f;
+
+        if (grid[move.y][move.x] == PieceType::Empty) {
+            // Normal move: Small semi-transparent dot
+            sf::CircleShape dot(12.f);
+            dot.setOrigin(12.f, 12.f);
+            dot.setFillColor(sf::Color(0, 0, 0, 45)); // Subtle dark dot
+            dot.setPosition(centerX, centerY);
+            window.draw(dot);
+        }
+        else {
+            // Capture move: Large ring around the piece
+            float ringRadius = tileSize / 2.0f - 5.0f;
+            sf::CircleShape ring(ringRadius);
+            ring.setOrigin(ringRadius, ringRadius);
+            ring.setFillColor(sf::Color::Transparent);
+            ring.setOutlineThickness(6.f);
+            ring.setOutlineColor(sf::Color(0, 0, 0, 45));
+            ring.setPosition(centerX, centerY);
+            window.draw(ring);
+        }
+    }
+
+    // --- 3. Draw Side Panel (Notation UI) ---
     sf::RectangleShape sidePanel(sf::Vector2f(300, 900));
     sidePanel.setPosition(900, 0);
-    sidePanel.setFillColor(sf::Color(45, 45, 45)); // Charcoal Gray
+    sidePanel.setFillColor(sf::Color(45, 45, 45));
     window.draw(sidePanel);
 
-    // Header for the side panel
     sf::Text title;
     title.setFont(font);
     title.setString("Move History");
@@ -502,7 +532,6 @@ void Board::draw(sf::RenderWindow& window) {
     title.setPosition(920, 20);
     window.draw(title);
 
-    // Render individual moves from history
     sf::Text moveText;
     moveText.setFont(font);
     moveText.setCharacterSize(18);
@@ -515,7 +544,6 @@ void Board::draw(sf::RenderWindow& window) {
     for (size_t i = 0; i < moveHistory.size(); ++i) {
         int turnNumber = (i / 2) + 1;
         bool isWhiteMove = (i % 2 == 0);
-
         float xPos = isWhiteMove ? startX : startX + 130;
         float yPos = startY + ((turnNumber - 1) * lineHeight);
 
@@ -524,14 +552,10 @@ void Board::draw(sf::RenderWindow& window) {
 
         moveText.setString(moveStr);
         moveText.setPosition(xPos, yPos);
-
-        // Stop rendering if moves go beyond window height
-        if (yPos < 860) {
-            window.draw(moveText);
-        }
+        if (yPos < 860) window.draw(moveText);
     }
 
-    // --- 3. Draw Game Over Overlay ---
+    // --- 4. Draw Game Over Overlay ---
     if (gameOver) {
         sf::RectangleShape overlay(sf::Vector2f(tileSize * 8, tileSize * 8));
         overlay.setPosition(offset, offset);
@@ -548,34 +572,26 @@ void Board::draw(sf::RenderWindow& window) {
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
         text.setPosition((tileSize * 8) / 2.0f + offset, (tileSize * 8) / 2.0f + offset);
-
         window.draw(text);
     }
 
-    // --- 4. Draw Board Coordinates (a-h, 1-8) ---
+    // --- 5. Draw Board Coordinates ---
     if (showCoordinates) {
         for (int i = 0; i < 8; ++i) {
             sf::Text coordText;
             coordText.setFont(font);
-            coordText.setCharacterSize(14); // Slightly smaller for professional look
+            coordText.setCharacterSize(14);
 
-            // 1. Numbers (1-8) - Vertical (Placed on the left edge of the first column)
             int logicRow = isFlowFlipped ? (7 - i) : i;
             coordText.setString(std::to_string(8 - logicRow));
-
-            // Dynamic color: Light grey on dark squares, dark grey on light squares
-            // Since it's the first column (j=0), color depends on i % 2
             coordText.setFillColor((i % 2 == 0) ? sf::Color(180, 50, 50) : sf::Color(235, 235, 210));
             coordText.setPosition(offset + 2, i * tileSize + offset + 2);
             window.draw(coordText);
 
-            // 2. Letters (a-h) - Horizontal (Placed on the bottom edge of the last row)
             int logicCol = isFlowFlipped ? (7 - i) : i;
             std::string colLabel = "";
             colLabel += (char)('a' + logicCol);
             coordText.setString(colLabel);
-
-            // Dynamic color for letters: Based on (7 + i) % 2 since they are on the 7th row
             coordText.setFillColor(((7 + i) % 2 == 0) ? sf::Color(180, 50, 50) : sf::Color(235, 235, 210));
             coordText.setPosition(i * tileSize + offset + tileSize - 15, 7 * tileSize + offset + tileSize - 20);
             window.draw(coordText);
@@ -699,5 +715,16 @@ void Board::flipBoard() {
 void Board::toggleCoordinates() {
     showCoordinates = !showCoordinates;
     std::cout << "Coordinates " << (showCoordinates ? "enabled." : "disabled.") << std::endl;
+}
+
+void Board::calculateValidMoves(int startRow, int startCol) {
+    validMoves.clear(); // Clear previous moves
+    for (int r = 0; r < 8; ++r) {
+        for (int c = 0; c < 8; ++c) {
+            if (isMoveValid(startRow, startCol, r, c)) {
+                validMoves.push_back(sf::Vector2i(c, r));
+            }
+        }
+    }
 }
 
