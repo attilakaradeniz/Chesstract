@@ -14,8 +14,8 @@ Board::Board() {
 
     // Setup pawns
     for (int i = 0; i < 8; ++i) {
-        grid[1][i] = PieceType::B_Pawn; // White pawns
-        grid[6][i] = PieceType::W_Pawn; // Black pawns
+        grid[1][i] = PieceType::B_Pawn; // Black pawns (Top)
+        grid[6][i] = PieceType::W_Pawn; // White pawns (Bottom)
     }
 
     // Setup pieces (Rooks, Knights, Bishops)
@@ -36,19 +36,17 @@ Board::Board() {
 }
 
 void Board::loadAssets() {
-    // Load the texture from the assets folder
+    // Load texture from assets
     if (!piecesTexture.loadFromFile("assets/pieces.png")) {
         std::cerr << "Error: Could not load assets/pieces.png!" << std::endl;
     }
     piecesTexture.setSmooth(true);
     pieceSprite.setTexture(piecesTexture);
-
-    // Initialize the lookup table for piece coordinates on the sprite sheet
     setupPieceSources();
 }
 
 void Board::setupPieceSources() {
-    // Map each piece type to its grid position (column, row) in the sprite sheet
+    // Mapping piece types to sprite sheet coordinates
     pieceSourceMap[PieceType::W_King] = { 0, 0 };
     pieceSourceMap[PieceType::W_Queen] = { 1, 0 };
     pieceSourceMap[PieceType::W_Bishop] = { 2, 0 };
@@ -68,210 +66,176 @@ bool Board::isMoveValid(int startRow, int startCol, int endRow, int endCol) {
     PieceType movingPiece = grid[startRow][startCol];
     if (startRow == endRow && startCol == endCol) return false;
 
-    // Movement differences
     int rowDiff = std::abs(startRow - endRow);
     int colDiff = std::abs(startCol - endCol);
 
     switch (movingPiece) {
     case PieceType::W_Knight:
-    case PieceType::B_Knight: {
-        // Knight moves in an 'L' shape: (2,1) or (1,2)
+    case PieceType::B_Knight:
+        // Knight moves in L-shape
         return (rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2);
-    }
 
     case PieceType::W_Rook:
-    case PieceType::B_Rook: {
-        // Rook must move either horizontally or vertically
+    case PieceType::B_Rook:
         if (startRow != endRow && startCol != endCol) return false;
-
-        // Determine direction of movement (1, -1, or 0)
-        int rowStep = (endRow == startRow) ? 0 : (endRow > startRow ? 1 : -1);
-        int colStep = (endCol == startCol) ? 0 : (endCol > startCol ? 1 : -1);
-
-        int currentRow = startRow + rowStep;
-        int currentCol = startCol + colStep;
-
-        // Check every square between start and end (exclusive)
-        while (currentRow != endRow || currentCol != endCol) {
-            if (grid[currentRow][currentCol] != PieceType::Empty) {
-                return false; // Path is blocked by another piece
-            }
-            currentRow += rowStep;
-            currentCol += colStep;
-        }
-        return true;
-    }
+        goto line_check;
 
     case PieceType::W_Bishop:
-    case PieceType::B_Bishop: {
-        int rowDiff = std::abs(startRow - endRow);
-        int colDiff = std::abs(startCol - endCol);
-
-        // 1. Bishop must move diagonally (row change == col change)
+    case PieceType::B_Bishop:
         if (rowDiff != colDiff) return false;
-
-        // 2. Determine diagonal direction (+1 or -1)
-        int rowStep = (endRow > startRow) ? 1 : -1;
-        int colStep = (endCol > startCol) ? 1 : -1;
-
-        int currentRow = startRow + rowStep;
-        int currentCol = startCol + colStep;
-
-        // 3. Check every square along the diagonal (exclusive)
-        while (currentRow != endRow && currentCol != endCol) {
-            if (grid[currentRow][currentCol] != PieceType::Empty) {
-                return false; // Path is blocked by another piece
-            }
-            currentRow += rowStep;
-            currentCol += colStep;
-        }
-        return true;
-    }
+        goto line_check;
 
     case PieceType::W_Queen:
-    case PieceType::B_Queen: {
-        int rowDiff = std::abs(startRow - endRow);
-        int colDiff = std::abs(startCol - endCol);
-
-        // 1. Queen must move either horizontally, vertically, OR diagonally
-        bool isHorizontalOrVertical = (startRow == endRow || startCol == endCol);
-        bool isDiagonal = (rowDiff == colDiff);
-
-        if (!isHorizontalOrVertical && !isDiagonal) return false;
-
-        // 2. Determine step direction (works for all 8 directions)
-        int rowStep = (endRow == startRow) ? 0 : (endRow > startRow ? 1 : -1);
-        int colStep = (endCol == startCol) ? 0 : (endCol > startCol ? 1 : -1);
-
-        int currentRow = startRow + rowStep;
-        int currentCol = startCol + colStep;
-
-        // 3. Path checking (same logic as Rook and Bishop)
-        while (currentRow != endRow || currentCol != endCol) {
-            if (grid[currentRow][currentCol] != PieceType::Empty) {
-                return false; // Blocked!
-            }
-            currentRow += rowStep;
-            currentCol += colStep;
-        }
-        return true;
-    }
+    case PieceType::B_Queen:
+        if (rowDiff != colDiff && (startRow != endRow && startCol != endCol)) return false;
+        goto line_check;
 
     case PieceType::W_King:
-    case PieceType::B_King: {
-        int rowDiff = std::abs(startRow - endRow);
-        int colDiff = std::abs(startCol - endCol);
+    case PieceType::B_King:
+        // Basic 1 square movement
+        if (rowDiff <= 1 && colDiff <= 1) return true;
 
-        // King can move exactly 1 square in any direction
-        // (rowDiff <= 1 AND colDiff <= 1) covers all 8 neighbor squares
-        if (rowDiff <= 1 && colDiff <= 1) {
-            return true;
-        }
+        // Castling logic
+        if (rowDiff == 0 && colDiff == 2) {
+            bool isWhitePiece = isWhite(movingPiece);
+            if (isWhitePiece && whiteKingMoved) return false;
+            if (!isWhitePiece && blackKingMoved) return false;
 
-        return false; // Cannot move more than 1 square
-    }
-
-    case PieceType::W_Pawn:
-    case PieceType::B_Pawn: {
-        int rowDiff = endRow - startRow; // rowDiff positive means going DOWN, negative means UP
-        int colDiff = std::abs(startCol - endCol);
-        int direction = (movingPiece == PieceType::W_Pawn) ? -1 : 1; // White goes up (-1), Black goes down (+1)
-        int startRowPos = (movingPiece == PieceType::W_Pawn) ? 6 : 1; // Starting row for pawns
-
-        PieceType targetPiece = grid[endRow][endCol];
-
-        // 1. Moving forward 1 square
-        if (colDiff == 0 && rowDiff == direction && targetPiece == PieceType::Empty) {
-            return true;
-        }
-
-        // 2. Initial double move (2 squares)
-        if (colDiff == 0 && startRow == startRowPos && rowDiff == 2 * direction) {
-            // Path check: The square in between must be empty too
-            if (grid[startRow + direction][startCol] == PieceType::Empty && targetPiece == PieceType::Empty) {
+            if (endCol == 6) { // Kingside Castling
+                bool rookMoved = isWhitePiece ? whiteRook7Moved : blackRook7Moved;
+                if (rookMoved || grid[startRow][5] != PieceType::Empty || grid[startRow][6] != PieceType::Empty) return false;
+                return true;
+            }
+            if (endCol == 2) { // Queenside Castling
+                bool rookMoved = isWhitePiece ? whiteRook0Moved : blackRook0Moved;
+                if (rookMoved || grid[startRow][1] != PieceType::Empty || grid[startRow][2] != PieceType::Empty || grid[startRow][3] != PieceType::Empty) return false;
                 return true;
             }
         }
+        return false;
 
-        // 3. Capturing diagonally
-        if (colDiff == 1 && rowDiff == direction && targetPiece != PieceType::Empty) {
-            // We already check "don't eat own color" in handleMouseClick, so if it's not Empty, it's an enemy.
-            return true;
+    case PieceType::W_Pawn:
+    case PieceType::B_Pawn: {
+        int dir = (movingPiece == PieceType::W_Pawn) ? -1 : 1;
+        int startPawnRow = (movingPiece == PieceType::W_Pawn) ? 6 : 1;
+
+        // Move forward 1 square
+        if (colDiff == 0 && (endRow - startRow) == dir && grid[endRow][endCol] == PieceType::Empty) return true;
+
+        // Initial double move
+        if (colDiff == 0 && startRow == startPawnRow && (endRow - startRow) == 2 * dir) {
+            if (grid[startRow + dir][startCol] == PieceType::Empty && grid[endRow][endCol] == PieceType::Empty) return true;
         }
 
-        return false; // Any other move is illegal
+        // Standard capture
+        if (colDiff == 1 && (endRow - startRow) == dir && grid[endRow][endCol] != PieceType::Empty) return true;
+
+        // En Passant capture
+        if (colDiff == 1 && (endRow - startRow) == dir && grid[endRow][endCol] == PieceType::Empty) {
+            if (lastPawnDoubleMove == sf::Vector2i(endCol, startRow)) return true;
+        }
+        return false;
+    }
+    default: return false;
     }
 
-    default:
-        return true; // Other pieces can still move freely for now
+line_check:
+    // Sliding pieces path obstruction check
+    int rStep = (endRow == startRow) ? 0 : (endRow > startRow ? 1 : -1);
+    int cStep = (endCol == startCol) ? 0 : (endCol > startCol ? 1 : -1);
+    int currR = startRow + rStep;
+    int currC = startCol + cStep;
+    while (currR != endRow || currC != endCol) {
+        if (grid[currR][currC] != PieceType::Empty) return false;
+        currR += rStep; currC += cStep;
     }
+    return true;
 }
 
 void Board::handleMouseClick(sf::Vector2i mousePos) {
-    int col = (mousePos.x - static_cast<int>(offset)) / static_cast<int>(tileSize);
-    int row = (mousePos.y - static_cast<int>(offset)) / static_cast<int>(tileSize);
+    int col = (mousePos.x - (int)offset) / (int)tileSize;
+    int row = (mousePos.y - (int)offset) / (int)tileSize;
 
     if (col < 0 || col >= 8 || row < 0 || row >= 8) return;
 
-    // CASE 1: Piece is already selected (Movement Phase)
     if (selectedSquare != sf::Vector2i(-1, -1)) {
         PieceType movingPiece = grid[selectedSquare.y][selectedSquare.x];
         PieceType targetPiece = grid[row][col];
 
         if (isMoveValid(selectedSquare.y, selectedSquare.x, row, col)) {
-            // Check for friendly fire: Cannot capture your own piece
+            // Friendly fire check: switch selection instead of moving
             if (targetPiece != PieceType::Empty && isWhite(movingPiece) == isWhite(targetPiece)) {
-                // Change selection instead of moving
                 selectedSquare = sf::Vector2i(col, row);
                 return;
             }
 
-            // Execute move and switch turn
+            // En Passant: remove the captured pawn
+            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && col != selectedSquare.x && targetPiece == PieceType::Empty) {
+                grid[selectedSquare.y][col] = PieceType::Empty;
+            }
+
+            // Castling: jump the rook over the king
+            if ((movingPiece == PieceType::W_King || movingPiece == PieceType::B_King) && std::abs(col - selectedSquare.x) == 2) {
+                if (col == 6) { // Kingside
+                    grid[row][5] = grid[row][7]; grid[row][7] = PieceType::Empty;
+                }
+                else { // Queenside
+                    grid[row][3] = grid[row][0]; grid[row][0] = PieceType::Empty;
+                }
+            }
+
+            // Update movement flags for Castling
+            if (movingPiece == PieceType::W_King) whiteKingMoved = true;
+            if (movingPiece == PieceType::B_King) blackKingMoved = true;
+            if (selectedSquare == sf::Vector2i(0, 0)) blackRook0Moved = true;
+            if (selectedSquare == sf::Vector2i(7, 0)) blackRook7Moved = true;
+            if (selectedSquare == sf::Vector2i(0, 7)) whiteRook0Moved = true;
+            if (selectedSquare == sf::Vector2i(7, 7)) whiteRook7Moved = true;
+
+            // Update En Passant memory for the next turn
+            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && std::abs(row - selectedSquare.y) == 2)
+                lastPawnDoubleMove = sf::Vector2i(col, row);
+            else
+                lastPawnDoubleMove = sf::Vector2i(-1, -1);
+
+            // Execute move and switch turns
             grid[row][col] = movingPiece;
             grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
-            whiteTurn = !whiteTurn; // Switch turn from White to Black or vice versa
-            std::cout << "Move executed. Next turn: " << (whiteTurn ? "White" : "Black") << std::endl;
+            whiteTurn = !whiteTurn;
         }
         selectedSquare = sf::Vector2i(-1, -1);
     }
-    // CASE 2: No piece selected (Selection Phase)
     else {
+        // Selection phase
         PieceType clickedPiece = grid[row][col];
-        if (clickedPiece != PieceType::Empty) {
-            // Check if player is selecting their own color based on the current turn
-            if (isWhite(clickedPiece) == whiteTurn) {
-                selectedSquare = sf::Vector2i(col, row);
-                std::cout << "Selected: " << (whiteTurn ? "White " : "Black ") << "piece." << std::endl;
-            }
-            else {
-                std::cout << "Wait for your turn! Currently: " << (whiteTurn ? "White's" : "Black's") << " turn." << std::endl;
-            }
+        if (clickedPiece != PieceType::Empty && isWhite(clickedPiece) == whiteTurn) {
+            selectedSquare = sf::Vector2i(col, row);
         }
     }
 }
 
 void Board::draw(sf::RenderWindow& window) {
-    const int sourceSize = 45; // Pixel size of each piece in our 270x90 sprite
-    const float scale = tileSize / static_cast<float>(sourceSize);
+    const int sourceSize = 45;
+    const float scale = tileSize / (float)sourceSize;
     pieceSprite.setScale(scale, scale);
 
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
-            // 1. Draw the board square
+            // Draw square
             sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
             square.setPosition(j * tileSize + offset, i * tileSize + offset);
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(240, 217, 181) : sf::Color(181, 136, 99));
             window.draw(square);
 
-            // 2. Draw selection highlight (under the piece)
+            // Draw selection highlight
             if (selectedSquare == sf::Vector2i(j, i)) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
                 highlight.setPosition(j * tileSize + offset, i * tileSize + offset);
-                highlight.setFillColor(sf::Color(255, 255, 0, 80)); // Semi-transparent yellow
+                highlight.setFillColor(sf::Color(255, 255, 0, 80));
                 window.draw(highlight);
             }
 
-            // 3. Draw the piece
+            // Draw piece
             PieceType type = grid[i][j];
             if (type != PieceType::Empty) {
                 PieceSource src = pieceSourceMap[type];
@@ -281,16 +245,10 @@ void Board::draw(sf::RenderWindow& window) {
             }
         }
     }
-
 }
 
 bool Board::isWhite(PieceType type) {
     if (type == PieceType::Empty) return false;
-    // Check if the piece belongs to the White team
-    return (type == PieceType::W_Pawn || type == PieceType::W_Rook ||
-        type == PieceType::W_Knight || type == PieceType::W_Bishop ||
-        type == PieceType::W_Queen || type == PieceType::W_King);
+    // Helper to determine team color
+    return (int)type >= (int)PieceType::W_Pawn && (int)type <= (int)PieceType::W_King;
 }
-
-
-

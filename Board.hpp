@@ -31,6 +31,15 @@ private:
     float offset = 50.f;
     std::map<PieceType, PieceSource> pieceSourceMap;
     void setupPieceSources();
+    sf::Vector2i lastPawnDoubleMove = sf::Vector2i(-1, -1); // Stores the destination of the last 2-square pawn move
+    bool whiteKingMoved = false;
+    bool whiteRook0Moved = false; // white left rook (a1)
+    bool whiteRook7Moved = false; // black right rook (h1)
+
+    bool blackKingMoved = false;
+    bool blackRook0Moved = false; // black left rook (a8)
+    bool blackRook7Moved = false; // black right rook (h8)
+
 
 	// SFML visual assets
     sf::Texture piecesTexture;
