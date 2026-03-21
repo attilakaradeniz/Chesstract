@@ -27,7 +27,7 @@ int main() {
     // std::cin.get();
 
     // SFML window object 
-    sf::RenderWindow window(sf::VideoMode(900, 900), "Chesstract - board render");
+    sf::RenderWindow window(sf::VideoMode(1200, 900), "Chesstract - board render");
 
 	Board myBoard;
 

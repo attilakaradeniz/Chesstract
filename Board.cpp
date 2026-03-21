@@ -366,20 +366,35 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             grid[row][col] = movingPiece;
             grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
 
-            // Promotion
+            // Promotion handling
             if (movingPiece == PieceType::W_Pawn && row == 0) { grid[row][col] = PieceType::W_Queen; moveNotation += "=Q"; }
             if (movingPiece == PieceType::B_Pawn && row == 7) { grid[row][col] = PieceType::B_Queen; moveNotation += "=Q"; }
 
-            // --- Record Move for History ---
+            // --- Check for "+" or "#" (Notation update) ---
+            // After the move, check if the opponent's king is under attack
+            sf::Vector2i opponentKing = findKing(!isWhite(movingPiece));
+            bool isCheck = isSquareAttacked(opponentKing.y, opponentKing.x, isWhite(movingPiece));
+
+            // Check if it's also a checkmate
+            if (isCheck) {
+                if (!hasLegalMoves(!isWhite(movingPiece))) {
+                    moveNotation += "#"; // Checkmate
+                }
+                else {
+                    moveNotation += "+"; // Check
+                }
+            }
+
+            // --- Record Move for History (Now with correct notation) ---
             MoveRecord record;
             record.start = selectedSquare;
             record.end = sf::Vector2i(col, row);
             record.movedPiece = movingPiece;
             record.capturedPiece = targetPiece;
-            record.notation = moveNotation;
+            record.notation = moveNotation; // Now contains + or #
             record.isWhiteMove = isWhite(movingPiece);
 
-            // hold the current state (in case of undo)
+            // Save state for undo
             record.prevLastPawnDoubleMove = lastPawnDoubleMove;
             record.prevWhiteKingMoved = whiteKingMoved;
             record.prevBlackKingMoved = blackKingMoved;
@@ -390,18 +405,11 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
 
             moveHistory.push_back(record);
 
-            // Turn Swap
+            // Print to console and swap turn
+            std::cout << (isWhite(movingPiece) ? "White moved: " : "Black moved: ") << moveNotation << std::endl;
             whiteTurn = !whiteTurn;
 
-            // Notation Check (+)
-            sf::Vector2i opponentKing = findKing(whiteTurn);
-            if (isSquareAttacked(opponentKing.y, opponentKing.x, !whiteTurn)) {
-                moveNotation += "+";
-            }
-
-            std::cout << (!whiteTurn ? "White moved: " : "Black moved: ") << moveNotation << std::endl;
-
-            // Trigger game end check AFTER turn swap
+            // Trigger game end check
             checkGameEnd();
         }
         selectedSquare = sf::Vector2i(-1, -1);
@@ -499,6 +507,56 @@ void Board::draw(sf::RenderWindow& window) {
 
         window.draw(text);
     }
+
+    // --- Draw Side Panel Background ---
+    sf::RectangleShape sidePanel(sf::Vector2f(300, 900));
+    sidePanel.setPosition(900, 0); // Start right after the 900px board
+    sidePanel.setFillColor(sf::Color(45, 45, 45)); // Dark charcoal gray
+    window.draw(sidePanel);
+
+    // --- Draw Notation Title ---
+    sf::Text title;
+    title.setFont(font);
+    title.setString("Move History");
+    title.setCharacterSize(24);
+    title.setFillColor(sf::Color(200, 200, 200));
+    title.setPosition(920, 20);
+    window.draw(title);
+
+    // --- Render Moves from history ---
+    sf::Text moveText;
+    moveText.setFont(font);
+    moveText.setCharacterSize(18);
+    moveText.setFillColor(sf::Color::White);
+
+    float startX = 930;
+    float startY = 70;
+    float lineHeight = 25;
+
+    for (size_t i = 0; i < moveHistory.size(); ++i) {
+        int turnNumber = (i / 2) + 1;
+        bool isWhite = (i % 2 == 0);
+
+        // Calculate position: 2 columns (White on left, Black on right)
+        float xPos = isWhite ? startX : startX + 130;
+        float yPos = startY + ((turnNumber - 1) * lineHeight);
+
+        std::string moveStr = "";
+        if (isWhite) {
+            moveStr = std::to_string(turnNumber) + ". " + moveHistory[i].notation;
+        }
+        else {
+            moveStr = moveHistory[i].notation;
+        }
+
+        moveText.setString(moveStr);
+        moveText.setPosition(xPos, yPos);
+        window.draw(moveText);
+
+        // Simple overflow prevention: Stop drawing if we hit the bottom of the screen
+        if (yPos > 850) break;
+    }
+
 }
 
 void Board::printStatus() {
