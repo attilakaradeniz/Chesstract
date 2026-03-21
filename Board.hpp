@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <map>
+#include <vector>
 
 struct PieceSource {
     int col;
@@ -15,6 +16,25 @@ enum class PieceType {
     B_Pawn, B_Rook, B_Knight, B_Bishop, B_Queen, B_King
 };
 
+// struct for record 
+struct MoveRecord {
+    sf::Vector2i start;
+    sf::Vector2i end;
+    PieceType movedPiece;
+    PieceType capturedPiece;
+    std::string notation;
+    bool isWhiteMove;
+
+	// states for undo functionality
+    sf::Vector2i prevLastPawnDoubleMove;
+    bool prevWhiteKingMoved;
+    bool prevBlackKingMoved;
+    bool prevWhiteRook0Moved;
+    bool prevWhiteRook7Moved;
+    bool prevBlackRook0Moved;
+    bool prevBlackRook7Moved;
+};
+
 class Board {
 public:
     Board();
@@ -23,6 +43,8 @@ public:
 
     void handleMouseClick(const sf::Vector2i mousePos);
     bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
+    void undoMove(); 
+    void exportPGN();
 
 private:
     bool whiteTurn = true; // True for White's turn, False for Black's
@@ -61,4 +83,8 @@ private:
     bool gameOver = false;
     std::string resultText = "";
     void checkGameEnd();
+
+	std::vector<MoveRecord> moveHistory; // Store move history for PGN export
+    // fınction to export PGN
+    
 };

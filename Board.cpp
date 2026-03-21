@@ -370,6 +370,26 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             if (movingPiece == PieceType::W_Pawn && row == 0) { grid[row][col] = PieceType::W_Queen; moveNotation += "=Q"; }
             if (movingPiece == PieceType::B_Pawn && row == 7) { grid[row][col] = PieceType::B_Queen; moveNotation += "=Q"; }
 
+            // --- Record Move for History ---
+            MoveRecord record;
+            record.start = selectedSquare;
+            record.end = sf::Vector2i(col, row);
+            record.movedPiece = movingPiece;
+            record.capturedPiece = targetPiece;
+            record.notation = moveNotation;
+            record.isWhiteMove = isWhite(movingPiece);
+
+            // hold the current state (in case of undo)
+            record.prevLastPawnDoubleMove = lastPawnDoubleMove;
+            record.prevWhiteKingMoved = whiteKingMoved;
+            record.prevBlackKingMoved = blackKingMoved;
+            record.prevWhiteRook0Moved = whiteRook0Moved;
+            record.prevWhiteRook7Moved = whiteRook7Moved;
+            record.prevBlackRook0Moved = blackRook0Moved;
+            record.prevBlackRook7Moved = blackRook7Moved;
+
+            moveHistory.push_back(record);
+
             // Turn Swap
             whiteTurn = !whiteTurn;
 
@@ -424,7 +444,12 @@ void Board::draw(sf::RenderWindow& window) {
             // Draw square
             sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
             square.setPosition(j * tileSize + offset, i * tileSize + offset);
+            // default colotr set  below""
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(240, 217, 181) : sf::Color(181, 136, 99));
+            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(200, 100, 100) : sf::Color(130, 255, 5)); // XXXX
+            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
+            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(135, 135, 110) : sf::Color(38, 25, 25));
+            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(240, 240, 240) : sf::Color(135, 30, 30));
             window.draw(square);
 
             // Draw selection highlight
@@ -502,5 +527,85 @@ bool Board::hasLegalMoves(bool white) {
     }
     // No legal moves found for any piece
     return false;
+}
+void Board::exportPGN() {
+    if (moveHistory.empty()) {
+        std::cout << "No moves to export yet." << std::endl;
+        return;
+    }
+
+    std::cout << "\n--- PGN EXPORT ---" << std::endl;
+    std::string pgn = "";
+    int moveNumber = 1;
+
+    for (size_t i = 0; i < moveHistory.size(); ++i) {
+        if (moveHistory[i].isWhiteMove) {
+            pgn += std::to_string(moveNumber) + ". " + moveHistory[i].notation + " ";
+        }
+        else {
+            pgn += moveHistory[i].notation + " ";
+            moveNumber++;
+        }
+    }
+
+    std::cout << pgn << std::endl;
+    if (gameOver) {
+        std::cout << (resultText.find("DRAW") != std::string::npos ? "1/2-1/2" : (whiteTurn ? "0-1" : "1-0")) << std::endl;
+    }
+    std::cout << "------------------\n" << std::endl;
+}
+
+void Board::undoMove() {
+    if (moveHistory.empty()) {
+        std::cout << "No moves to undo." << std::endl;
+        return;
+    }
+
+    // 1. Get the last move and remove it from history
+    MoveRecord last = moveHistory.back();
+    moveHistory.pop_back();
+
+    // 2. Restore the piece to its original position
+    grid[last.start.y][last.start.x] = last.movedPiece;
+    grid[last.end.y][last.end.x] = last.capturedPiece;
+
+    // 3. Special Case: Undo En Passant
+    // If a pawn moved diagonally to an empty square, it was an en passant capture
+    if ((last.movedPiece == PieceType::W_Pawn || last.movedPiece == PieceType::B_Pawn) &&
+        last.start.x != last.end.x && last.capturedPiece == PieceType::Empty) {
+
+        // Put the captured pawn back (White captured Black or vice versa)
+        grid[last.start.y][last.end.x] = last.isWhiteMove ? PieceType::B_Pawn : PieceType::W_Pawn;
+    }
+
+    // 4. Special Case: Undo Castling
+    // If the king moved 2 squares, we must move the rook back as well
+    if ((last.movedPiece == PieceType::W_King || last.movedPiece == PieceType::B_King) &&
+        std::abs(last.end.x - last.start.x) == 2) {
+
+        if (last.end.x == 6) { // Kingside castling
+            grid[last.end.y][7] = grid[last.end.y][5];
+            grid[last.end.y][5] = PieceType::Empty;
+        }
+        else if (last.end.x == 2) { // Queenside castling
+            grid[last.end.y][0] = grid[last.end.y][3];
+            grid[last.end.y][3] = PieceType::Empty;
+        }
+    }
+
+    // 5. Restore game state flags (Castling rights and En Passant square)
+    lastPawnDoubleMove = last.prevLastPawnDoubleMove;
+    whiteKingMoved = last.prevWhiteKingMoved;
+    blackKingMoved = last.prevBlackKingMoved;
+    whiteRook0Moved = last.prevWhiteRook0Moved;
+    whiteRook7Moved = last.prevWhiteRook7Moved;
+    blackRook0Moved = last.prevBlackRook0Moved;
+    blackRook7Moved = last.prevBlackRook7Moved;
+
+    // 6. Reset turn and clear game over status
+    whiteTurn = last.isWhiteMove;
+    gameOver = false;
+
+    std::cout << "Undo successful. Turn is now " << (whiteTurn ? "White" : "Black") << "." << std::endl;
 }
 

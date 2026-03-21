@@ -40,6 +40,17 @@ int main() {
                     myBoard.handleMouseClick(mousePos);
                 }
             }
+
+            // 2. Keyboard Input Handling (NEW)
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::P) {
+                    myBoard.exportPGN(); // Trigger PGN export to console
+                }
+                if (event.key.code == sf::Keyboard::U) {
+                    myBoard.undoMove(); // Revert the last move
+                }
+            }
+
             if (event.type == sf::Event::Closed)
                 window.close();
         }
