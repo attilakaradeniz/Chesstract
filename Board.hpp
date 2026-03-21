@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <map>
@@ -22,8 +22,10 @@ public:
     void draw(sf::RenderWindow& window);
 
     void handleMouseClick(const sf::Vector2i mousePos);
+    bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
 
 private:
+    bool whiteTurn = true; // True for White's turn, False for Black's
     PieceType grid[8][8];
     const float tileSize = 100.f;
     float offset = 50.f;
@@ -36,4 +38,6 @@ private:
 	sf::Vector2i selectedSquare = sf::Vector2i(-1, -1); // No square selected
 
     void loadAssets(); // to load asset
+
+    bool isWhite(PieceType type); // Add this helper function here
 };
