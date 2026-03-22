@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <SFML/Audio.hpp>
 
 struct PieceSource {
     int col;
@@ -96,6 +97,9 @@ private:
 	bool showCoordinates = true; // Toggle for showing coordinates on the board
 
     std::vector<sf::Vector2i> validMoves;
-
+    sf::SoundBuffer moveBuffer;
+    sf::SoundBuffer captureBuffer;
+    sf::Sound moveSound;
+    sf::Sound captureSound;
     
 };
