@@ -10,15 +10,18 @@ Board::Board() :
     showCoordinates(true),
     selectedSquare(-1, -1),
     lastPawnDoubleMove(-1, -1),
-    whiteKingMoved(false),    // Bunları da unutma!
+    whiteKingMoved(false),
     blackKingMoved(false),
     whiteRook0Moved(false),
     whiteRook7Moved(false),
     blackRook0Moved(false),
     blackRook7Moved(false),
-    tileSize(100.0f),         // Sabitleri de burada başlatabilirsin
+    tileSize(100.0f),
     offset(50.0f),
-    scrollOffset(0.0f) // Başlangıçta kaydırma yok
+    scrollOffset(0.0f), // initial there is no scroll
+    isDragging(false),
+	draggedPieceSource(-1, -1),
+	mousePos(0.f, 0.f)
 
 
 
@@ -280,105 +283,7 @@ char Board::getPieceChar(PieceType type) {
     }
 }
 
-void Board::handleMouseClick(const sf::Vector2i mousePos) {
-    if (gameOver) return;
-    int col = (mousePos.x - (int)offset) / (int)tileSize;
-    int row = (mousePos.y - (int)offset) / (int)tileSize;
-    if (isFlowFlipped) { col = 7 - col; row = 7 - row; }
-    if (col < 0 || col >= 8 || row < 0 || row >= 8) return;
 
-    if (selectedSquare != sf::Vector2i(-1, -1)) {
-        PieceType movingPiece = grid[selectedSquare.y][selectedSquare.x];
-        PieceType targetPiece = grid[row][col];
-
-        if (isMoveValid(selectedSquare.y, selectedSquare.x, row, col)) {
-            if (targetPiece != PieceType::Empty && isWhite(movingPiece) == isWhite(targetPiece)) {
-                selectedSquare = sf::Vector2i(col, row);
-                calculateValidMoves(row, col);
-                return;
-            }
-
-            bool isCapture = (targetPiece != PieceType::Empty);
-            char pieceChar = getPieceChar(movingPiece);
-            std::string moveNotation = "";
-
-            // En Passant Logic
-            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && col != selectedSquare.x && targetPiece == PieceType::Empty) {
-                isCapture = true; grid[selectedSquare.y][col] = PieceType::Empty;
-            }
-
-            if (pieceChar != ' ') moveNotation += pieceChar;
-            else if (isCapture) moveNotation += (char)('a' + selectedSquare.x);
-            if (isCapture) moveNotation += "x";
-            moveNotation += (char)('a' + col); moveNotation += std::to_string(8 - row);
-
-            // Castling Logic
-            if ((movingPiece == PieceType::W_King || movingPiece == PieceType::B_King) && std::abs(col - selectedSquare.x) == 2) {
-                if (col == 6) { grid[row][5] = grid[row][7]; grid[row][7] = PieceType::Empty; moveNotation = "O-O"; }
-                else { grid[row][3] = grid[row][0]; grid[row][0] = PieceType::Empty; moveNotation = "O-O-O"; }
-            }
-
-            // Update State Flags
-            if (movingPiece == PieceType::W_King) whiteKingMoved = true;
-            if (movingPiece == PieceType::B_King) blackKingMoved = true;
-            if (selectedSquare == sf::Vector2i(0, 0)) blackRook0Moved = true;
-            if (selectedSquare == sf::Vector2i(7, 0)) blackRook7Moved = true;
-            if (selectedSquare == sf::Vector2i(0, 7)) whiteRook0Moved = true;
-            if (selectedSquare == sf::Vector2i(7, 7)) whiteRook7Moved = true;
-
-            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && std::abs(row - selectedSquare.y) == 2)
-                lastPawnDoubleMove = sf::Vector2i(col, row);
-            else lastPawnDoubleMove = sf::Vector2i(-1, -1);
-
-            grid[row][col] = movingPiece;
-            grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
-
-            // update last move indicator
-			lastMoveStart = selectedSquare;
-			lastMoveEnd = sf::Vector2i(col, row);
-
-            // Promotion
-            if (movingPiece == PieceType::W_Pawn && row == 0) { grid[row][col] = PieceType::W_Queen; moveNotation += "=Q"; }
-            if (movingPiece == PieceType::B_Pawn && row == 7) { grid[row][col] = PieceType::B_Queen; moveNotation += "=Q"; }
-
-            // Check / Mate check
-            sf::Vector2i opponentKing = findKing(!isWhite(movingPiece));
-            bool isCheck = isSquareAttacked(opponentKing.y, opponentKing.x, isWhite(movingPiece));
-            if (isCheck) moveNotation += (!hasLegalMoves(!isWhite(movingPiece))) ? "#" : "+";
-
-            // Record History
-            MoveRecord record;
-            record.start = selectedSquare; record.end = sf::Vector2i(col, row);
-            record.movedPiece = movingPiece; record.capturedPiece = targetPiece;
-            record.notation = moveNotation; record.isWhiteMove = isWhite(movingPiece);
-            record.prevLastPawnDoubleMove = lastPawnDoubleMove;
-            record.prevWhiteKingMoved = whiteKingMoved; record.prevBlackKingMoved = blackKingMoved;
-            record.prevWhiteRook0Moved = whiteRook0Moved; record.prevWhiteRook7Moved = whiteRook7Moved;
-            record.prevBlackRook0Moved = blackRook0Moved; record.prevBlackRook7Moved = blackRook7Moved;
-            moveHistory.push_back(record);
-
-            // update current move index
-            currentMoveIndex = (int)moveHistory.size() - 1;
-
-            // Audio Logic
-            if (isCheck || isCapture) captureSound.play();
-            else moveSound.play();
-
-            std::cout << (isWhite(movingPiece) ? "White moved: " : "Black moved: ") << moveNotation << std::endl;
-            whiteTurn = !whiteTurn;
-            checkGameEnd();
-        }
-        validMoves.clear();
-        selectedSquare = sf::Vector2i(-1, -1);
-    }
-    else {
-        PieceType clickedPiece = grid[row][col];
-        if (clickedPiece != PieceType::Empty && isWhite(clickedPiece) == whiteTurn) {
-            selectedSquare = sf::Vector2i(col, row);
-            calculateValidMoves(row, col);
-        }
-    }
-}
 
 void Board::checkGameEnd() {
     if (!hasLegalMoves(whiteTurn)) {
@@ -420,10 +325,14 @@ void Board::draw(sf::RenderWindow& window) {
 
             PieceType type = grid[i][j];
             if (type != PieceType::Empty) {
-                PieceSource src = pieceSourceMap[type];
-                pieceSprite.setTextureRect(sf::IntRect(src.col * sourceSize, src.row * sourceSize, sourceSize, sourceSize));
-                pieceSprite.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
-                window.draw(pieceSprite);
+                // Check if this specific piece is currently being dragged
+                // If it is being dragged, we skip drawing it here so it doesn't appear twice
+                if (!(isDragging && draggedPieceSource == sf::Vector2i(j, i))) {
+                    PieceSource src = pieceSourceMap[type];
+                    pieceSprite.setTextureRect(sf::IntRect(src.col * sourceSize, src.row * sourceSize, sourceSize, sourceSize));
+                    pieceSprite.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
+                    window.draw(pieceSprite);
+                }
             }
 
             // Inside the nested loop for drawing squares:
@@ -436,6 +345,27 @@ void Board::draw(sf::RenderWindow& window) {
                 window.draw(highlight);
             }
         }
+    }
+
+    // --- DRAW DRAGGED PIECE ON TOP ---
+    if (isDragging) {
+        // Get the type of the piece that was picked up
+        PieceType type = grid[draggedPieceSource.y][draggedPieceSource.x];
+        PieceSource src = pieceSourceMap[type];
+
+        // Set the texture area for the piece
+        pieceSprite.setTextureRect(sf::IntRect(src.col * sourceSize, src.row * sourceSize, sourceSize, sourceSize));
+
+        // Set origin to the center of the sprite so it's held by the middle
+        pieceSprite.setOrigin(sourceSize / 2.0f, sourceSize / 2.0f);
+
+        // Follow the mouse cursor position
+        pieceSprite.setPosition(mousePos);
+
+        window.draw(pieceSprite);
+
+        // Crucial: Reset origin so it doesn't mess up the next frame's regular piece drawing
+        pieceSprite.setOrigin(0, 0);
     }
 
     // Draw Dots and Rings
@@ -748,8 +678,8 @@ void Board::applyMoveIndependently(const MoveRecord& record) {
         }
     }
 
-    // Not: Promotion zaten record.movedPiece içinde 'Queen' olarak 
-    // handleMouseClick'te değiştiği için burada ekstra bir şeye gerek yok.
+    // ATTENTION: Promotion is for now auto queen (in record.movedPiece) 
+    
 }
 
 void Board::goToMove(int targetIndex) {
@@ -824,3 +754,190 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
         toggleCoordinates();
     }
 }
+
+void Board::handleMouseDown(sf::Vector2f mPos) {
+    // Convert screen coordinates to board grid indices
+    int col = static_cast<int>((mPos.x - offset) / tileSize);
+    int row = static_cast<int>((mPos.y - offset) / tileSize);
+
+    // Adjust for flipped board view
+    int logCol = isFlowFlipped ? (7 - col) : col;
+    int logRow = isFlowFlipped ? (7 - row) : row;
+
+    // Check bounds and ensure we are clicking on a piece of the current player's color
+    if (logCol >= 0 && logCol < 8 && logRow >= 0 && logRow < 8) {
+        PieceType clickedPiece = grid[logRow][logCol];
+        if (clickedPiece != PieceType::Empty && isWhite(clickedPiece) == whiteTurn) {
+            isDragging = true;
+            draggedPieceSource = sf::Vector2i(logCol, logRow);
+
+            // Set selection and calculate legal moves
+            selectedSquare = draggedPieceSource;
+            calculateValidMoves(logRow, logCol); // FIXED: Name matches your existing function
+        }
+    }
+}
+
+void Board::handleMouseClick(const sf::Vector2i mousePos) {
+    if (gameOver) return;
+
+    // Convert screen coordinates to grid indices
+    int col = (mousePos.x - (int)offset) / (int)tileSize;
+    int row = (mousePos.y - (int)offset) / (int)tileSize;
+
+    // Adjust for flipped board view
+    if (isFlowFlipped) { col = 7 - col; row = 7 - row; }
+
+    // Out of bounds check
+    if (col < 0 || col >= 8 || row < 0 || row >= 8) return;
+
+    // If a piece is already selected, try to move it
+    if (selectedSquare != sf::Vector2i(-1, -1)) {
+        PieceType movingPiece = grid[selectedSquare.y][selectedSquare.x];
+        PieceType targetPiece = grid[row][col];
+
+        // If the user clicks the SAME square, just keep it selected (do not deselect)
+        // This is crucial for the Drag & Drop flow to work smoothly with clicks
+        if (selectedSquare == sf::Vector2i(col, row)) {
+            return;
+        }
+
+        // Check if the clicked target is a valid move
+        if (isMoveValid(selectedSquare.y, selectedSquare.x, row, col)) {
+
+            // --- ACTUAL CHESS LOGIC AND NOTATION GENERATION ---
+            bool isCapture = (targetPiece != PieceType::Empty);
+            char pieceChar = getPieceChar(movingPiece);
+            std::string moveNotation = "";
+
+            // En Passant Logic: Pawn moves diagonally but target is empty
+            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && col != selectedSquare.x && targetPiece == PieceType::Empty) {
+                isCapture = true;
+                grid[selectedSquare.y][col] = PieceType::Empty; // Remove the captured pawn
+            }
+
+            // Build basic notation string
+            if (pieceChar != ' ') moveNotation += pieceChar;
+            else if (isCapture) moveNotation += (char)('a' + selectedSquare.x); // Pawn capture includes starting file
+
+            if (isCapture) moveNotation += "x";
+
+            moveNotation += (char)('a' + col);
+            moveNotation += std::to_string(8 - row);
+
+            // Castling Logic: King moves 2 squares
+            if ((movingPiece == PieceType::W_King || movingPiece == PieceType::B_King) && std::abs(col - selectedSquare.x) == 2) {
+                if (col == 6) {
+                    // Kingside (Short) Castle
+                    grid[row][5] = grid[row][7];
+                    grid[row][7] = PieceType::Empty;
+                    moveNotation = "O-O";
+                }
+                else {
+                    // Queenside (Long) Castle
+                    grid[row][3] = grid[row][0];
+                    grid[row][0] = PieceType::Empty;
+                    moveNotation = "O-O-O";
+                }
+            }
+
+            // Update State Flags for castling rights and En Passant
+            if (movingPiece == PieceType::W_King) whiteKingMoved = true;
+            if (movingPiece == PieceType::B_King) blackKingMoved = true;
+            if (selectedSquare == sf::Vector2i(0, 0)) blackRook0Moved = true;
+            if (selectedSquare == sf::Vector2i(7, 0)) blackRook7Moved = true;
+            if (selectedSquare == sf::Vector2i(0, 7)) whiteRook0Moved = true;
+            if (selectedSquare == sf::Vector2i(7, 7)) whiteRook7Moved = true;
+
+            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && std::abs(row - selectedSquare.y) == 2)
+                lastPawnDoubleMove = sf::Vector2i(col, row);
+            else
+                lastPawnDoubleMove = sf::Vector2i(-1, -1);
+
+            // Execute the primary piece move on the grid
+            grid[row][col] = movingPiece;
+            grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
+
+            // Update last move indicators for highlights
+            lastMoveStart = selectedSquare;
+            lastMoveEnd = sf::Vector2i(col, row);
+
+            // Promotion Logic (Auto-Queen for now)
+            if (movingPiece == PieceType::W_Pawn && row == 0) { grid[row][col] = PieceType::W_Queen; moveNotation += "=Q"; }
+            if (movingPiece == PieceType::B_Pawn && row == 7) { grid[row][col] = PieceType::B_Queen; moveNotation += "=Q"; }
+
+            // Check / Checkmate notation evaluation
+            sf::Vector2i opponentKing = findKing(!isWhite(movingPiece));
+            bool isCheck = isSquareAttacked(opponentKing.y, opponentKing.x, isWhite(movingPiece));
+            if (isCheck) moveNotation += (!hasLegalMoves(!isWhite(movingPiece))) ? "#" : "+";
+
+            // Record History for PGN and Undo
+            MoveRecord record;
+            record.start = selectedSquare;
+            record.end = sf::Vector2i(col, row);
+            record.movedPiece = movingPiece;
+            record.capturedPiece = targetPiece;
+            record.notation = moveNotation;
+            record.isWhiteMove = isWhite(movingPiece);
+            record.prevLastPawnDoubleMove = lastPawnDoubleMove;
+            record.prevWhiteKingMoved = whiteKingMoved;
+            record.prevBlackKingMoved = blackKingMoved;
+            record.prevWhiteRook0Moved = whiteRook0Moved;
+            record.prevWhiteRook7Moved = whiteRook7Moved;
+            record.prevBlackRook0Moved = blackRook0Moved;
+            record.prevBlackRook7Moved = blackRook7Moved;
+
+            // Delete any alternate future if we travelled back in time
+            if (currentMoveIndex < (int)moveHistory.size() - 1) {
+                moveHistory.erase(moveHistory.begin() + currentMoveIndex + 1, moveHistory.end());
+            }
+
+            moveHistory.push_back(record);
+            currentMoveIndex = (int)moveHistory.size() - 1;
+
+            // Play appropriate sound effect
+            if (isCheck || isCapture) captureSound.play();
+            else moveSound.play();
+
+            std::cout << (isWhite(movingPiece) ? "White moved: " : "Black moved: ") << moveNotation << std::endl;
+
+            // Switch turn and check for game over
+            whiteTurn = !whiteTurn;
+            checkGameEnd();
+
+            // Clear selection and valid moves after a successful turn
+            validMoves.clear();
+            selectedSquare = sf::Vector2i(-1, -1);
+        }
+        else {
+            // If the user clicked an invalid square, check if they clicked another of their own pieces
+            PieceType clickedPiece = grid[row][col];
+            if (clickedPiece != PieceType::Empty && isWhite(clickedPiece) == whiteTurn) {
+                // Change selection to the newly clicked friendly piece
+                selectedSquare = sf::Vector2i(col, row);
+                calculateValidMoves(row, col);
+            }
+            else {
+                // Clicked an empty square or enemy piece invalidly: Deselect everything
+                selectedSquare = sf::Vector2i(-1, -1);
+                validMoves.clear();
+            }
+        }
+    }
+    else {
+        // No piece is currently selected, try to select one
+        PieceType clickedPiece = grid[row][col];
+        if (clickedPiece != PieceType::Empty && isWhite(clickedPiece) == whiteTurn) {
+            selectedSquare = sf::Vector2i(col, row);
+            calculateValidMoves(row, col);
+        }
+    }
+}
+
+void Board::handleMouseUp(sf::Vector2f mPos) {
+    // Only used to stop the visual dragging effect.
+    // We do NOT reset selectedSquare here so the Click event can use it.
+    isDragging = false;
+    // draggedPieceSource = sf::Vector2i(-1, -1); // Keep this to know what we were dragging
+}
+

@@ -59,6 +59,10 @@ public:
 	void calculateValidMoves(int startRow, int startol);
     void epxortPGN();
     void savePGNToFile();
+    // functions for drag & drop
+    void updateMousePos(sf::Vector2f pos) { mousePos = pos; }
+    void handleMouseDown(sf::Vector2f mPos);
+    void handleMouseUp(sf::Vector2f mPos);
     
     // PRIVATE
 private:
@@ -120,7 +124,11 @@ private:
 
     void applyMoveIndependently(const MoveRecord& record);
 
-	float scrollOffset = 0.0f; // For smooth scrolling when navigating move history
+	float scrollOffset = 0.0f; 
+
+    bool isDragging = false;
+	sf::Vector2i draggedPieceSource;
+    sf::Vector2f mousePos;
 
 
     

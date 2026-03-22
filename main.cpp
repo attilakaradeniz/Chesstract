@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <SFML/Graphics.hpp>
 #include "Board.hpp"
 
@@ -15,48 +15,61 @@ int main() {
 
     // Check the current C++ standard version being used
     std::cout << "C++ Standard Version: " << __cplusplus << std::endl;
-
     std::cout << "\nInitializing chess board..." << std::endl;
 
-    //Board myBoard;
-
-    // myBoard.printStatus();
-
-
-    // Wait for user input before closing the console
-    // std::cin.get();
-
-    // SFML window object 
     sf::RenderWindow window(sf::VideoMode(1200, 900), "Chesstract - board render");
-
-	Board myBoard;
+    Board myBoard;
 
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
+            // 1. closing the  window
+            if (event.type == sf::Event::Closed)
+                window.close();
+
+            // 2. Keyboard enter (arrows etc)
+            if (event.type == sf::Event::KeyPressed) {
+                myBoard.handleKeyPress(event.key.code);
+            }
+
+            // --- DRAG & DROP  ---
+
+            // A. mouse movement (piece sticks to mouse pointer)
+            if (event.type == sf::Event::MouseMoved) {
+                // SFML 
+                sf::Vector2f mPos = window.mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                myBoard.updateMousePos(mPos);
+            }
+
+            // --- DRAG & DROP AND CLICK LOGIC ---
+
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Left) {
-                    sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-                    myBoard.handleMouseClick(mousePos);
+                    sf::Vector2f mPos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                    // This selects the piece and starts the drag
+                    myBoard.handleMouseDown(mPos);
                 }
             }
 
-            // 2. Keyboard Input Handling (NEW)
-            if (event.type == sf::Event::KeyPressed) {
-				myBoard.handleKeyPress(event.key.code);
-            }
+            if (event.type == sf::Event::MouseButtonReleased) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2f mPos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
-            if (event.type == sf::Event::Closed)
-                window.close();
+                    // 1. First, tell the board the dragging has stopped visually
+                    myBoard.handleMouseUp(mPos);
+
+                    // 2. Second, process the click. 
+                    // If the user dragged to a new square, handleMouseClick will see 
+                    // that a square was already selected (from MouseDown) and move it there.
+                    myBoard.handleMouseClick(sf::Vector2i(static_cast<int>(mPos.x), static_cast<int>(mPos.y)));
+                }
+            }
         }
-		window.clear(sf::Color(60, 60, 60)); // Dark gray background
-        //window.clear(sf::Color::Blue);
-        //window.clear();
-        // Here comes chess board and pieces
-		myBoard.draw(window);
-        
+
+        window.clear(sf::Color(60, 60, 60));
+        myBoard.draw(window);
         window.display();
-	}
+    }
 
     return 0;
 }
