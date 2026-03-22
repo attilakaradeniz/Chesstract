@@ -46,7 +46,7 @@ int main() {
                 if (event.key.code == sf::Keyboard::P) {
                     myBoard.exportPGN(); // Trigger PGN export to console
                 }
-                if (event.key.code == sf::Keyboard::U) {
+                if (event.key.code == sf::Keyboard::U || sf::Keyboard::Left) {
                     myBoard.undoMove(); // Revert the last move
                 }
                 if (event.key.code == sf::Keyboard::F) {

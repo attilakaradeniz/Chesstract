@@ -39,6 +39,7 @@ struct MoveRecord {
 };
 
 class Board {
+    // PUBLIC
 public:
     Board();
     void printStatus();
@@ -53,8 +54,8 @@ public:
 	void calculateValidMoves(int startRow, int startol);
     void epxortPGN();
     void savePGNToFile();
-
-
+    
+    // PRIVATE
 private:
     bool whiteTurn = true; // True for White's turn, False for Black's
     PieceType grid[8][8];
@@ -105,5 +106,9 @@ private:
     sf::SoundBuffer captureBuffer;
     sf::Sound moveSound;
     sf::Sound captureSound;
+
+	sf::Vector2i lastMoveStart = sf::Vector2i(-1, -1);
+	sf::Vector2i lastMoveEnd = sf::Vector2i(-1, -1);
+
     
 };

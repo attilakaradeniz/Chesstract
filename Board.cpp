@@ -331,6 +331,10 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             grid[row][col] = movingPiece;
             grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
 
+            // update last move indicator
+			lastMoveStart = selectedSquare;
+			lastMoveEnd = sf::Vector2i(col, row);
+
             // Promotion
             if (movingPiece == PieceType::W_Pawn && row == 0) { grid[row][col] = PieceType::W_Queen; moveNotation += "=Q"; }
             if (movingPiece == PieceType::B_Pawn && row == 7) { grid[row][col] = PieceType::B_Queen; moveNotation += "=Q"; }
@@ -409,8 +413,24 @@ void Board::draw(sf::RenderWindow& window) {
                 pieceSprite.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
                 window.draw(pieceSprite);
             }
+
+            // Inside the nested loop for drawing squares:
+			// for last move and turn indicator
+            if (sf::Vector2i(j, i) == lastMoveStart || sf::Vector2i(j, i) == lastMoveEnd) {
+                sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
+                highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
+                // Light yellow with some transparency
+                highlight.setFillColor(sf::Color(255, 255, 0, 80));
+                window.draw(highlight);
+            }
+
+
+
+
         }
     }
+
+
 
     // Draw Dots and Rings
     for (const auto& move : validMoves) {
@@ -437,6 +457,50 @@ void Board::draw(sf::RenderWindow& window) {
     sf::RectangleShape sidePanel(sf::Vector2f(300, 900));
     sidePanel.setPosition(900, 0); sidePanel.setFillColor(sf::Color(45, 45, 45));
     window.draw(sidePanel);
+
+    //  TURN INDICATOR (at board border) 
+    sf::CircleShape turnIndicator(12.f); 
+    // turnIndicator.setOutlineThickness(3.f);
+    turnIndicator.setOutlineThickness(2.f);
+    // turnIndicator.setOutlineColor(sf::Color(255, 20, 20)); // border color
+    turnIndicator.setOutlineColor(sf::Color(155, 155, 155)); // border color
+
+    // H sütununun hemen sağı (Tahtanın bittiği yer)
+    float indicatorX = 8 * tileSize + offset + 10;
+
+    if (whiteTurn) {
+        turnIndicator.setFillColor(sf::Color::White);
+        // H1 karesinin (7. satır) hizası
+        turnIndicator.setPosition(indicatorX, 7 * tileSize + offset + 35);
+    }
+    else {
+        turnIndicator.setFillColor(sf::Color(95, 60, 60)); // Koyu gri
+        // H8 karesinin (0. satır) hizası
+        turnIndicator.setPosition(indicatorX, 0 * tileSize + offset + 35);
+    }
+    window.draw(turnIndicator);
+
+    //// Draw Turn Indicator (The "Ping Pong Ball")
+    //sf::CircleShape turnIndicator(15.f); // Radius of 15
+    //turnIndicator.setOutlineThickness(2.f);
+    //turnIndicator.setOutlineColor(sf::Color::White);
+
+    //// Position it next to the "Move History" title or at the bottom
+    //if (whiteTurn) {
+    //    turnIndicator.setFillColor(sf::Color::White);
+    //    turnIndicator.setPosition(930, 800); // Bottom-left of side panel
+    //}
+    //else {
+    //    turnIndicator.setFillColor(sf::Color(50, 50, 50)); // Dark grey/Black
+    //    turnIndicator.setPosition(1100, 800); // Bottom-right of side panel
+    //}
+    //window.draw(turnIndicator);
+
+    // Optional: Add a small label
+    sf::Text turnText(whiteTurn ? "   White's Turn" : "   Black's Turn", font, 12);
+    //turnText.setPosition(960, 795);
+    turnText.setPosition(980, 795);
+    window.draw(turnText);
 
     sf::Text title("Move History", font, 24); title.setPosition(920, 20); window.draw(title);
     sf::Text moveText("", font, 18);
@@ -531,8 +595,9 @@ void Board::exportPGN() {
 
     // Standard PGN Header Tags (Optional but professional)
     pgn += "[Event \"Casual Game\"]\n";
-    pgn += "[Site \"Gemini Chess Engine\"]\n";
-    
+//    pgn += "[Site \"Gemini Chess Engine\"]\n";
+    pgn += "[Site \"chesstracted\"]\n";
+
     // Get current date
     time_t now = time(0);
     tm *ltm = localtime(&now);
