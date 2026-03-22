@@ -390,6 +390,13 @@ void Board::draw(sf::RenderWindow& window) {
     const float scale = tileSize / (float)sourceSize;
     pieceSprite.setScale(scale, scale);
 
+    // draw fonksiyonunun en başında:
+    static sf::Clock animationClock;
+    float time = animationClock.getElapsedTime().asSeconds();
+    // 0.8 ile 1.2 arasında gidip gelen bir çarpan (yavaşça büyüyüp küçülür)
+    float pulseScale = 1.0f + 0.10f * std::sin(time * 3.0f);
+
+
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             int renderRow = isFlowFlipped ? (7 - i) : i;
@@ -420,7 +427,7 @@ void Board::draw(sf::RenderWindow& window) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
                 highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
                 // Light yellow with some transparency
-                highlight.setFillColor(sf::Color(255, 255, 0, 80));
+                highlight.setFillColor(sf::Color(255, 255, 0, 35));
                 window.draw(highlight);
             }
 
@@ -458,49 +465,64 @@ void Board::draw(sf::RenderWindow& window) {
     sidePanel.setPosition(900, 0); sidePanel.setFillColor(sf::Color(45, 45, 45));
     window.draw(sidePanel);
 
-    //  TURN INDICATOR (at board border) 
-    sf::CircleShape turnIndicator(12.f); 
-    // turnIndicator.setOutlineThickness(3.f);
-    turnIndicator.setOutlineThickness(2.f);
-    // turnIndicator.setOutlineColor(sf::Color(255, 20, 20)); // border color
-    turnIndicator.setOutlineColor(sf::Color(155, 155, 155)); // border color
+    // --- 3D PULSING TURN INDICATOR ---
+    float baseRadius = 15.f;
+    float currentRadius = baseRadius * pulseScale;
 
-    // H sütununun hemen sağı (Tahtanın bittiği yer)
-    float indicatorX = 8 * tileSize + offset + 10;
+    // Dış Daire (Ana Renk/Gölge)
+    sf::CircleShape top(currentRadius);
+    top.setOrigin(currentRadius, currentRadius);
+    float indicatorX = 8 * tileSize + offset + 25;
+    float indicatorY = 4 * tileSize + offset;
+    top.setPosition(indicatorX, indicatorY);
 
-    if (whiteTurn) {
-        turnIndicator.setFillColor(sf::Color::White);
-        // H1 karesinin (7. satır) hizası
-        turnIndicator.setPosition(indicatorX, 7 * tileSize + offset + 35);
-    }
-    else {
-        turnIndicator.setFillColor(sf::Color(95, 60, 60)); // Koyu gri
-        // H8 karesinin (0. satır) hizası
-        turnIndicator.setPosition(indicatorX, 0 * tileSize + offset + 35);
-    }
-    window.draw(turnIndicator);
+    // Renk Ayarı
+    sf::Color mainColor = whiteTurn ? sf::Color(220, 220, 220) : sf::Color(30, 30, 30);
+    sf::Color highlightColor = whiteTurn ? sf::Color::White : sf::Color(70, 70, 70);
 
-    //// Draw Turn Indicator (The "Ping Pong Ball")
-    //sf::CircleShape turnIndicator(15.f); // Radius of 15
-    //turnIndicator.setOutlineThickness(2.f);
-    //turnIndicator.setOutlineColor(sf::Color::White);
+    top.setFillColor(mainColor);
+    top.setOutlineThickness(2.f);
+    top.setOutlineColor(sf::Color(30, 30, 30, 150)); // Yumuşak dış çerçeve
+    window.draw(top);
 
-    //// Position it next to the "Move History" title or at the bottom
-    //if (whiteTurn) {
-    //    turnIndicator.setFillColor(sf::Color::White);
-    //    turnIndicator.setPosition(930, 800); // Bottom-left of side panel
-    //}
-    //else {
-    //    turnIndicator.setFillColor(sf::Color(50, 50, 50)); // Dark grey/Black
-    //    turnIndicator.setPosition(1100, 800); // Bottom-right of side panel
-    //}
-    //window.draw(turnIndicator);
+    // İç Daire (Işık Patlaması - 3D Efekti Veren Kısım)
+    sf::CircleShape lightSpot(currentRadius * 0.4f); // Daha küçük bir ışık noktası
+    lightSpot.setOrigin(lightSpot.getRadius(), lightSpot.getRadius());
+    // Işığı sol üste alıyoruz ki 3D görünsün
+    lightSpot.setPosition(indicatorX - currentRadius * 0.3f, indicatorY - currentRadius * 0.3f);
+    lightSpot.setFillColor(highlightColor);
+    window.draw(lightSpot);
 
-    // Optional: Add a small label
-    sf::Text turnText(whiteTurn ? "   White's Turn" : "   Black's Turn", font, 12);
-    //turnText.setPosition(960, 795);
-    turnText.setPosition(980, 795);
-    window.draw(turnText);
+    ////  TURN INDICATOR (at board border) 
+    //sf::CircleShape turnIndicator(15.f); 
+    //// turnIndicator.setOutlineThickness(3.f);
+    //turnIndicator.setOutlineThickness(3.f);
+
+
+ //   // position near the h file
+ //   float indicatorX = 8 * tileSize + offset + 10;
+ //   float indicatorY = 4 * tileSize + offset - 15;
+
+	//turnIndicator.setPosition(indicatorX, indicatorY); // Default position (centered on the right edge)
+
+ //   if (whiteTurn) {
+ //       turnIndicator.setFillColor(sf::Color::White);
+	//	turnIndicator.setOutlineColor(sf::Color(30, 30, 30)); // border color
+ //       // H1 karesinin (7. satır) hizası
+ //       //turnIndicator.setPosition(indicatorX, 7 * tileSize + offset + 35);
+ //   }
+ //   else {
+ //       turnIndicator.setFillColor(sf::Color(40, 40, 40)); // Koyu gri
+	//	turnIndicator.setOutlineColor(sf::Color(200, 200, 200)); // Açık gri border
+ //       // H8 karesinin (0. satır) hizası
+ //       //turnIndicator.setPosition(indicatorX, 0 * tileSize + offset + 35);
+ //   }
+ //   window.draw(turnIndicator);
+
+    //sf::Text turnLabel(whiteTurn ? "White" : "Black", font, 14);
+    //turnLabel.setFillColor(sf::Color(200, 200, 200));
+    //turnLabel.setPosition(indicatorX - 5, indicatorY + 35);
+    //window.draw(turnLabel);
 
     sf::Text title("Move History", font, 24); title.setPosition(920, 20); window.draw(title);
     sf::Text moveText("", font, 18);

@@ -46,7 +46,7 @@ int main() {
                 if (event.key.code == sf::Keyboard::P) {
                     myBoard.exportPGN(); // Trigger PGN export to console
                 }
-                if (event.key.code == sf::Keyboard::U || sf::Keyboard::Left) {
+                if (event.key.code == sf::Keyboard::U || event.key.code == sf::Keyboard::Left) {
                     myBoard.undoMove(); // Revert the last move
                 }
                 if (event.key.code == sf::Keyboard::F) {
@@ -64,8 +64,9 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
-        // window.clear(sf::Color::Blue);
-        window.clear();
+		window.clear(sf::Color(60, 60, 60)); // Dark gray background
+        //window.clear(sf::Color::Blue);
+        //window.clear();
         // Here comes chess board and pieces
 		myBoard.draw(window);
         
