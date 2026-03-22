@@ -120,6 +120,8 @@ private:
 
     void applyMoveIndependently(const MoveRecord& record);
 
+	float scrollOffset = 0.0f; // For smooth scrolling when navigating move history
+
 
     
 };

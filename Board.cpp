@@ -17,7 +17,9 @@ Board::Board() :
     blackRook0Moved(false),
     blackRook7Moved(false),
     tileSize(100.0f),         // Sabitleri de burada başlatabilirsin
-    offset(50.0f)
+    offset(50.0f),
+    scrollOffset(0.0f) // Başlangıçta kaydırma yok
+
 
 
 {
@@ -399,7 +401,7 @@ void Board::draw(sf::RenderWindow& window) {
     // 0.8 ile 1.2 arasında gidip gelen bir çarpan (yavaşça büyüyüp küçülür)
     float pulseScale = 1.0f + 0.10f * std::sin(time * 3.0f);
 
-
+    // --- Satranç Tahtası ve Taşların Çizimi ---
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             int renderRow = isFlowFlipped ? (7 - i) : i;
@@ -433,14 +435,8 @@ void Board::draw(sf::RenderWindow& window) {
                 highlight.setFillColor(sf::Color(255, 255, 0, 35));
                 window.draw(highlight);
             }
-
-
-
-
         }
     }
-
-
 
     // Draw Dots and Rings
     for (const auto& move : validMoves) {
@@ -463,97 +459,73 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    // Side Panel Notation
+    // Side Panel Notation Background
     sf::RectangleShape sidePanel(sf::Vector2f(300, 900));
     sidePanel.setPosition(900, 0); sidePanel.setFillColor(sf::Color(45, 45, 45));
     window.draw(sidePanel);
+
+    // --- MOVE HISTORY WITH SCROLLING ---
+    sf::Text title("Move History", font, 24);
+    title.setPosition(920, 20);
+    window.draw(title);
+
+    // Otomatik Scroll Hesaplama
+    int activeRow = (currentMoveIndex / 2);
+    float targetY = 70 + (activeRow * 25);
+    if (targetY > 800) {
+        scrollOffset = targetY - 800;
+    }
+    else {
+        scrollOffset = 0;
+    }
+
+    sf::Text moveText("", font, 18);
+    for (size_t i = 0; i < moveHistory.size(); ++i) {
+        int turnNumber = (i / 2) + 1;
+        float xPos = (i % 2 == 0) ? 930 : 1060;
+        float yPos = 70 + ((turnNumber - 1) * 25) - scrollOffset;
+
+        // Kırpma (Clipping): Sadece panel içindeyse çiz
+        if (yPos > 60 && yPos < 860) {
+            std::string moveStr = (i % 2 == 0) ? (std::to_string(turnNumber) + ". " + moveHistory[i].notation) : moveHistory[i].notation;
+            moveText.setString(moveStr);
+            moveText.setPosition(xPos, yPos);
+
+            if ((int)i == currentMoveIndex) {
+                moveText.setFillColor(sf::Color::Yellow);
+                moveText.setStyle(sf::Text::Bold | sf::Text::Underlined);
+            }
+            else {
+                moveText.setFillColor(sf::Color::White);
+                moveText.setStyle(sf::Text::Regular);
+            }
+            window.draw(moveText);
+        }
+    }
 
     // --- 3D PULSING TURN INDICATOR ---
     float baseRadius = 15.f;
     float currentRadius = baseRadius * pulseScale;
 
-    // outer cicrle (main color/shape)
     sf::CircleShape top(currentRadius);
     top.setOrigin(currentRadius, currentRadius);
     float indicatorX = 8 * tileSize + offset + 25;
     float indicatorY = 4 * tileSize + offset;
     top.setPosition(indicatorX, indicatorY);
 
-    // color adjusting
     sf::Color mainColor = whiteTurn ? sf::Color(220, 220, 220) : sf::Color(30, 30, 30);
     sf::Color highlightColor = whiteTurn ? sf::Color::White : sf::Color(70, 70, 70);
 
     top.setFillColor(mainColor);
     top.setOutlineThickness(2.f);
-    top.setOutlineColor(sf::Color(30, 30, 30, 150)); // soft outer frame
+    top.setOutlineColor(sf::Color(30, 30, 30, 150));
     window.draw(top);
 
-    // inner circle (light spot for 3D effect)
-    sf::CircleShape lightSpot(currentRadius * 0.4f); // smaller light spot
+    sf::CircleShape lightSpot(currentRadius * 0.4f);
     lightSpot.setOrigin(lightSpot.getRadius(), lightSpot.getRadius());
-    // light from upper left (3D effect)
     lightSpot.setPosition(indicatorX - currentRadius * 0.3f, indicatorY - currentRadius * 0.3f);
     lightSpot.setFillColor(highlightColor);
     window.draw(lightSpot);
-
-    ////  TURN INDICATOR (at board border) 
-    //sf::CircleShape turnIndicator(15.f); 
-    //// turnIndicator.setOutlineThickness(3.f);
-    //turnIndicator.setOutlineThickness(3.f);
-
-
- //   // position near the h file
- //   float indicatorX = 8 * tileSize + offset + 10;
- //   float indicatorY = 4 * tileSize + offset - 15;
-
-    //turnIndicator.setPosition(indicatorX, indicatorY); // Default position (centered on the right edge)
-
- //   if (whiteTurn) {
- //       turnIndicator.setFillColor(sf::Color::White);
-    //	turnIndicator.setOutlineColor(sf::Color(30, 30, 30)); // border color
- //       // H1 karesinin (7. satır) hizası
- //       //turnIndicator.setPosition(indicatorX, 7 * tileSize + offset + 35);
- //   }
- //   else {
- //       turnIndicator.setFillColor(sf::Color(40, 40, 40)); // Koyu gri
-    //	turnIndicator.setOutlineColor(sf::Color(200, 200, 200)); // Açık gri border
- //       // H8 karesinin (0. satır) hizası
- //       //turnIndicator.setPosition(indicatorX, 0 * tileSize + offset + 35);
- //   }
- //   window.draw(turnIndicator);
-
-    //sf::Text turnLabel(whiteTurn ? "White" : "Black", font, 14);
-    //turnLabel.setFillColor(sf::Color(200, 200, 200));
-    //turnLabel.setPosition(indicatorX - 5, indicatorY + 35);
-    //window.draw(turnLabel);
-
-    sf::Text title("Move History", font, 24); title.setPosition(920, 20); window.draw(title);
-    sf::Text moveText("", font, 18);
-    for (size_t i = 0; i < moveHistory.size(); ++i) {
-        int turnNumber = (i / 2) + 1;
-        float xPos = (i % 2 == 0) ? 930 : 1060;
-        float yPos = 70 + ((turnNumber - 1) * 25);
-        std::string moveStr = (i % 2 == 0) ? (std::to_string(turnNumber) + ". " + moveHistory[i].notation) : moveHistory[i].notation;
-
-        moveText.setString(moveStr);
-        moveText.setPosition(xPos, yPos);
-
-        // Highlight Active Move Logic
-        if ((int)i == currentMoveIndex) {
-            moveText.setFillColor(sf::Color::Yellow);
-            moveText.setStyle(sf::Text::Bold | sf::Text::Underlined);
-        }
-        else {
-            moveText.setFillColor(sf::Color::White);
-            moveText.setStyle(sf::Text::Regular);
-        }
-
-        if (yPos < 860) {
-            window.draw(moveText);
-        }
-    }
-
-
 
     if (gameOver) {
         sf::RectangleShape overlay(sf::Vector2f(tileSize * 8, tileSize * 8));
