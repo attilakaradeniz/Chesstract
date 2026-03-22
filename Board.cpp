@@ -306,7 +306,16 @@ void Board::draw(sf::RenderWindow& window) {
     // 0.8 ile 1.2 arasında gidip gelen bir çarpan (yavaşça büyüyüp küçülür)
     float pulseScale = 1.0f + 0.10f * std::sin(time * 3.0f);
 
-    // --- Satranç Tahtası ve Taşların Çizimi ---
+    // --- Check Status Calculation for Rendering ---
+    // Find the positions of both kings
+    sf::Vector2i wKingPos = findKing(true);
+    sf::Vector2i bKingPos = findKing(false);
+
+    // Determine if either king is currently under attack (in check)
+    bool isWCheck = isSquareAttacked(wKingPos.y, wKingPos.x, false); // White king attacked by Black
+    bool isBCheck = isSquareAttacked(bKingPos.y, bKingPos.x, true);  // Black king attacked by White
+
+    // --- chess board & pieces draw ---
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             int renderRow = isFlowFlipped ? (7 - i) : i;
@@ -316,12 +325,65 @@ void Board::draw(sf::RenderWindow& window) {
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
             window.draw(square);
 
+            //// --- HIGHLIGHT KING IN CHECK ---
+            // FIRST BASIC OPTION
+            //// If the current square contains a king that is in check, highlight it in red
+            //if ((isWCheck && sf::Vector2i(j, i) == wKingPos) ||
+            //    (isBCheck && sf::Vector2i(j, i) == bKingPos)) {
+
+            //    sf::RectangleShape checkHighlight(sf::Vector2f(tileSize, tileSize));
+            //    checkHighlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
+            //    checkHighlight.setFillColor(sf::Color(255, 0, 0, 230)); // Semi-transparent red
+            //    window.draw(checkHighlight);
+            //}
+
+            // SECOND FANCY OPTION
+			// If the current square contains a king that is in check, draw a pulsating red
+
+            // --- STYLIZED NATIVE "CHECK" GLOW ---
+
+            float centerX = renderCol * tileSize + offset + tileSize / 2.0f;
+            float centerY = renderRow * tileSize + offset + tileSize / 2.0f;
+
+            // If White King is in check and this is his square
+            if (isWCheck && sf::Vector2i(j, i) == wKingPos) {
+                // Draw 4 concentric circles to create a soft, degrading glow effect
+                for (int step = 0; step < 4; ++step) {
+                    float radius = (tileSize / 2.5f) + (step * 10.0f); // Expands outward beyond the square
+                    sf::CircleShape glow(radius);
+                    glow.setOrigin(radius, radius);
+                    glow.setPosition(centerX, centerY);
+
+                    // Decrease opacity as radius increases (e.g., 150 -> 110 -> 70 -> 30)
+                    glow.setFillColor(sf::Color(255, 0, 0, 150 - (step * 40)));
+                    window.draw(glow);
+                }
+            }
+
+            // If Black King is in check and this is his square
+            if (isBCheck && sf::Vector2i(j, i) == bKingPos) {
+                for (int step = 0; step < 4; ++step) {
+                    float radius = (tileSize / 2.5f) + (step * 10.0f);
+                    sf::CircleShape glow(radius);
+                    glow.setOrigin(radius, radius);
+                    glow.setPosition(centerX, centerY);
+
+                    glow.setFillColor(sf::Color(255, 0, 0, 150 - (step * 40)));
+                    window.draw(glow);
+                }
+            }
+
+
+
+
             if (selectedSquare == sf::Vector2i(j, i)) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
                 highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
                 highlight.setFillColor(sf::Color(255, 255, 0, 80));
                 window.draw(highlight);
             }
+
+
 
             PieceType type = grid[i][j];
             if (type != PieceType::Empty) {
