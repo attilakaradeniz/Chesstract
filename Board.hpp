@@ -48,6 +48,11 @@ public:
     void handleMouseClick(const sf::Vector2i mousePos);
     bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
     void undoMove(); 
+	// to navigate moves
+    void goToMove(int targetIndex);
+    void resetBoardToStart();
+    void handleKeyPress(sf::Keyboard::Key key);
+
     void exportPGN();
     void flipBoard(); 
     void toggleCoordinates();
@@ -109,6 +114,12 @@ private:
 
 	sf::Vector2i lastMoveStart = sf::Vector2i(-1, -1);
 	sf::Vector2i lastMoveEnd = sf::Vector2i(-1, -1);
+
+	// to hold move history for PGN export
+	int currentMoveIndex = -1; // For navigating move history in PGN export
+
+    void applyMoveIndependently(const MoveRecord& record);
+
 
     
 };

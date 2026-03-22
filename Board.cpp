@@ -355,6 +355,9 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             record.prevBlackRook0Moved = blackRook0Moved; record.prevBlackRook7Moved = blackRook7Moved;
             moveHistory.push_back(record);
 
+            // update current move index
+            currentMoveIndex = (int)moveHistory.size() - 1;
+
             // Audio Logic
             if (isCheck || isCapture) captureSound.play();
             else moveSound.play();
@@ -422,7 +425,7 @@ void Board::draw(sf::RenderWindow& window) {
             }
 
             // Inside the nested loop for drawing squares:
-			// for last move and turn indicator
+            // for last move and turn indicator
             if (sf::Vector2i(j, i) == lastMoveStart || sf::Vector2i(j, i) == lastMoveEnd) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
                 highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
@@ -469,26 +472,26 @@ void Board::draw(sf::RenderWindow& window) {
     float baseRadius = 15.f;
     float currentRadius = baseRadius * pulseScale;
 
-    // Dış Daire (Ana Renk/Gölge)
+    // outer cicrle (main color/shape)
     sf::CircleShape top(currentRadius);
     top.setOrigin(currentRadius, currentRadius);
     float indicatorX = 8 * tileSize + offset + 25;
     float indicatorY = 4 * tileSize + offset;
     top.setPosition(indicatorX, indicatorY);
 
-    // Renk Ayarı
+    // color adjusting
     sf::Color mainColor = whiteTurn ? sf::Color(220, 220, 220) : sf::Color(30, 30, 30);
     sf::Color highlightColor = whiteTurn ? sf::Color::White : sf::Color(70, 70, 70);
 
     top.setFillColor(mainColor);
     top.setOutlineThickness(2.f);
-    top.setOutlineColor(sf::Color(30, 30, 30, 150)); // Yumuşak dış çerçeve
+    top.setOutlineColor(sf::Color(30, 30, 30, 150)); // soft outer frame
     window.draw(top);
 
-    // İç Daire (Işık Patlaması - 3D Efekti Veren Kısım)
-    sf::CircleShape lightSpot(currentRadius * 0.4f); // Daha küçük bir ışık noktası
+    // inner circle (light spot for 3D effect)
+    sf::CircleShape lightSpot(currentRadius * 0.4f); // smaller light spot
     lightSpot.setOrigin(lightSpot.getRadius(), lightSpot.getRadius());
-    // Işığı sol üste alıyoruz ki 3D görünsün
+    // light from upper left (3D effect)
     lightSpot.setPosition(indicatorX - currentRadius * 0.3f, indicatorY - currentRadius * 0.3f);
     lightSpot.setFillColor(highlightColor);
     window.draw(lightSpot);
@@ -503,17 +506,17 @@ void Board::draw(sf::RenderWindow& window) {
  //   float indicatorX = 8 * tileSize + offset + 10;
  //   float indicatorY = 4 * tileSize + offset - 15;
 
-	//turnIndicator.setPosition(indicatorX, indicatorY); // Default position (centered on the right edge)
+    //turnIndicator.setPosition(indicatorX, indicatorY); // Default position (centered on the right edge)
 
  //   if (whiteTurn) {
  //       turnIndicator.setFillColor(sf::Color::White);
-	//	turnIndicator.setOutlineColor(sf::Color(30, 30, 30)); // border color
+    //	turnIndicator.setOutlineColor(sf::Color(30, 30, 30)); // border color
  //       // H1 karesinin (7. satır) hizası
  //       //turnIndicator.setPosition(indicatorX, 7 * tileSize + offset + 35);
  //   }
  //   else {
  //       turnIndicator.setFillColor(sf::Color(40, 40, 40)); // Koyu gri
-	//	turnIndicator.setOutlineColor(sf::Color(200, 200, 200)); // Açık gri border
+    //	turnIndicator.setOutlineColor(sf::Color(200, 200, 200)); // Açık gri border
  //       // H8 karesinin (0. satır) hizası
  //       //turnIndicator.setPosition(indicatorX, 0 * tileSize + offset + 35);
  //   }
@@ -531,9 +534,26 @@ void Board::draw(sf::RenderWindow& window) {
         float xPos = (i % 2 == 0) ? 930 : 1060;
         float yPos = 70 + ((turnNumber - 1) * 25);
         std::string moveStr = (i % 2 == 0) ? (std::to_string(turnNumber) + ". " + moveHistory[i].notation) : moveHistory[i].notation;
-        moveText.setString(moveStr); moveText.setPosition(xPos, yPos);
-        if (yPos < 860) window.draw(moveText);
+
+        moveText.setString(moveStr);
+        moveText.setPosition(xPos, yPos);
+
+        // Highlight Active Move Logic
+        if ((int)i == currentMoveIndex) {
+            moveText.setFillColor(sf::Color::Yellow);
+            moveText.setStyle(sf::Text::Bold | sf::Text::Underlined);
+        }
+        else {
+            moveText.setFillColor(sf::Color::White);
+            moveText.setStyle(sf::Text::Regular);
+        }
+
+        if (yPos < 860) {
+            window.draw(moveText);
+        }
     }
+
+
 
     if (gameOver) {
         sf::RectangleShape overlay(sf::Vector2f(tileSize * 8, tileSize * 8));
@@ -695,5 +715,140 @@ void Board::savePGNToFile() {
     }
     else {
         std::cerr << "Error: Could not create file " << filename << std::endl;
+    }
+}
+
+void Board::resetBoardToStart() {
+    // 1. reset all flags
+    whiteTurn = true;
+    gameOver = false;
+    whiteKingMoved = false;
+    blackKingMoved = false;
+    whiteRook0Moved = false;
+    whiteRook7Moved = false;
+    blackRook0Moved = false;
+    blackRook7Moved = false;
+    lastPawnDoubleMove = sf::Vector2i(-1, -1);
+
+    // 2. clear the oard (Empty)
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            grid[i][j] = PieceType::Empty;
+        }
+    }
+
+    // 3. pieces openning plaeces(same in the Constructor)
+    for (int i = 0; i < 8; ++i) {
+        grid[1][i] = PieceType::B_Pawn;
+        grid[6][i] = PieceType::W_Pawn;
+    }
+    grid[0][0] = grid[0][7] = PieceType::B_Rook;
+    grid[7][0] = grid[7][7] = PieceType::W_Rook;
+    grid[0][1] = grid[0][6] = PieceType::B_Knight;
+    grid[7][1] = grid[7][6] = PieceType::W_Knight;
+    grid[0][2] = grid[0][5] = PieceType::B_Bishop;
+    grid[7][2] = grid[7][5] = PieceType::W_Bishop;
+    grid[0][3] = PieceType::B_Queen; grid[0][4] = PieceType::B_King;
+    grid[7][3] = PieceType::W_Queen; grid[7][4] = PieceType::W_King;
+}
+
+void Board::applyMoveIndependently(const MoveRecord& record) {
+    // 1. standard piece move
+    grid[record.end.y][record.end.x] = record.movedPiece;
+    grid[record.start.y][record.start.x] = PieceType::Empty;
+
+    // 2. En Passant
+    if ((record.movedPiece == PieceType::W_Pawn || record.movedPiece == PieceType::B_Pawn) &&
+        record.start.x != record.end.x && record.capturedPiece == PieceType::Empty) {
+        grid[record.start.y][record.end.x] = PieceType::Empty;
+    }
+
+    // 3. castle 
+    if ((record.movedPiece == PieceType::W_King || record.movedPiece == PieceType::B_King) &&
+        std::abs(record.end.x - record.start.x) == 2) {
+        if (record.end.x == 6) { // Kısa Rok
+            grid[record.end.y][5] = grid[record.end.y][7];
+            grid[record.end.y][7] = PieceType::Empty;
+        }
+        else { // caastle long
+            grid[record.end.y][3] = grid[record.end.y][0];
+            grid[record.end.y][0] = PieceType::Empty;
+        }
+    }
+
+    // Not: Promotion zaten record.movedPiece içinde 'Queen' olarak 
+    // handleMouseClick'te değiştiği için burada ekstra bir şeye gerek yok.
+}
+
+void Board::goToMove(int targetIndex) {
+    // 1. Sınırları aşma (History dışına çıkma)
+    if (targetIndex < -1 || targetIndex >= (int)moveHistory.size()) return;
+
+    // 2. Tahtayı ve flagleri sıfırla
+    resetBoardToStart();
+
+    // 3. Tarihi baştan yaz (Sessizce)
+    for (int i = 0; i <= targetIndex; ++i) {
+        applyMoveIndependently(moveHistory[i]);
+    }
+
+    // 4. İmleci güncelle
+    currentMoveIndex = targetIndex;
+
+    // 5. Sırayı belirle
+    // Eğer currentMoveIndex -1 ise (başlangıç) sıra Beyazda (true).
+    // Eğer currentMoveIndex 0 ise (beyaz oynadı) sıra Siyahda (false).
+    // Kısacası: Çift index ise sıra siyahta, tek (veya -1) ise beyazda.
+    if (currentMoveIndex == -1) {
+        whiteTurn = true;
+    }
+    else {
+        whiteTurn = !moveHistory[currentMoveIndex].isWhiteMove;
+    }
+
+    // 6. Görsel netlik için seçimleri ve valid hareketleri temizle
+    selectedSquare = sf::Vector2i(-1, -1);
+    validMoves.clear();
+}
+
+// helper: to clear the board
+//void Board::resetBoardToStart() {
+//    // same in the Constructor (grid codes here)
+//    // place the pieces and set the flags (kingmoved etc)
+//}
+
+
+
+void Board::handleKeyPress(sf::Keyboard::Key key) {
+    // --- Navigasyon Okları ---
+    if (key == sf::Keyboard::Left) {
+        goToMove(currentMoveIndex - 1);
+    }
+    else if (key == sf::Keyboard::Right) {
+        goToMove(currentMoveIndex + 1);
+    }
+    else if (key == sf::Keyboard::Up) {
+        goToMove(-1); // En başa dön
+    }
+    else if (key == sf::Keyboard::Down) {
+        goToMove((int)moveHistory.size() - 1); // En sona git
+    }
+
+    // --- Diğer Fonksiyonlar (Eskiden main'de olanlar) ---
+    else if (key == sf::Keyboard::U) {
+        undoMove();
+        // Not: Undo hamleyi SİLER, Sol Ok ise sadece GERİ GİDER (silmez).
+    }
+    else if (key == sf::Keyboard::P) {
+        exportPGN();
+    }
+    else if (key == sf::Keyboard::S) {
+        savePGNToFile();
+    }
+    else if (key == sf::Keyboard::F) {
+        flipBoard();
+    }
+    else if (key == sf::Keyboard::C) {
+        toggleCoordinates();
     }
 }

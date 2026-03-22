@@ -43,22 +43,7 @@ int main() {
 
             // 2. Keyboard Input Handling (NEW)
             if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::P) {
-                    myBoard.exportPGN(); // Trigger PGN export to console
-                }
-                if (event.key.code == sf::Keyboard::U || event.key.code == sf::Keyboard::Left) {
-                    myBoard.undoMove(); // Revert the last move
-                }
-                if (event.key.code == sf::Keyboard::F) {
-                    myBoard.flipBoard(); // Flip the board orientation
-				}
-                if (event.key.code == sf::Keyboard::C) {
-                    myBoard.toggleCoordinates();
-                }
-                // Press 'S' to save PGN to a File
-                if (event.key.code == sf::Keyboard::S) {
-                    myBoard.savePGNToFile();
-                }
+				myBoard.handleKeyPress(event.key.code);
             }
 
             if (event.type == sf::Event::Closed)
