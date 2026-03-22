@@ -1,8 +1,26 @@
-﻿#include "Board.hpp"
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include "Board.hpp"
 #include <iostream>
 #include <cmath> // For std::abs
 
-Board::Board() {
+Board::Board() :
+    whiteTurn(true),
+    gameOver(false),
+    isFlowFlipped(false),
+    showCoordinates(true),
+    selectedSquare(-1, -1),
+    lastPawnDoubleMove(-1, -1),
+    whiteKingMoved(false),    // Bunları da unutma!
+    blackKingMoved(false),
+    whiteRook0Moved(false),
+    whiteRook7Moved(false),
+    blackRook0Moved(false),
+    blackRook7Moved(false),
+    tileSize(100.0f),         // Sabitleri de burada başlatabilirsin
+    offset(50.0f)
+
+
+{
     loadAssets();
 
     // Initialize the board with Empty squares
@@ -501,4 +519,94 @@ void Board::calculateValidMoves(int startRow, int startCol) {
 void Board::flipBoard() { isFlowFlipped = !isFlowFlipped; }
 void Board::toggleCoordinates() { showCoordinates = !showCoordinates; }
 void Board::printStatus() { std::cout << "Current turn: " << (whiteTurn ? "White" : "Black") << std::endl; }
-void Board::exportPGN() { /* PGN Export implementation... */ }
+//void Board::exportPGN() { /* PGN Export implementation... */ }
+void Board::exportPGN() {
+    if (moveHistory.empty()) {
+        std::cout << "No moves to export yet." << std::endl;
+        return;
+    }
+
+    std::string pgn = "";
+    int moveNumber = 1;
+
+    // Standard PGN Header Tags (Optional but professional)
+    pgn += "[Event \"Casual Game\"]\n";
+    pgn += "[Site \"Gemini Chess Engine\"]\n";
+    
+    // Get current date
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    pgn += "[Date \"" + std::to_string(1900 + ltm->tm_year) + "." + 
+           std::to_string(1 + ltm->tm_mon) + "." + std::to_string(ltm->tm_mday) + "\"]\n";
+    
+    pgn += "[White \"Player 1\"]\n";
+    pgn += "[Black \"Player 2\"]\n";
+    
+    // Result determination
+    std::string result = "*";
+    if (gameOver) {
+        if (resultText.find("WHITE WINS") != std::string::npos) result = "1-0";
+        else if (resultText.find("BLACK WINS") != std::string::npos) result = "0-1";
+        else if (resultText.find("DRAW") != std::string::npos) result = "1/2-1/2";
+    }
+    pgn += "[Result \"" + result + "\"]\n\n";
+
+    // Build the move list
+    for (size_t i = 0; i < moveHistory.size(); ++i) {
+        if (moveHistory[i].isWhiteMove) {
+            pgn += std::to_string(moveNumber) + ". " + moveHistory[i].notation + " ";
+        } else {
+            pgn += moveHistory[i].notation + " ";
+            moveNumber++;
+        }
+    }
+    
+    pgn += result; // Append final result at the end of moves
+
+    std::cout << "\n--- PGN OUTPUT ---\n" << pgn << "\n------------------\n" << std::endl;
+}
+
+void Board::savePGNToFile() {
+    if (moveHistory.empty()) return;
+
+    // 1. Get current system time
+    std::time_t t = std::time(nullptr);
+
+    // 2. Convert to local time structure (Standard C++)
+    std::tm* ltm = std::localtime(&t);
+
+    // 3. Format the filename: game_YYYYMMDD_HHMMSS.pgn
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "game_%Y%m%d_%H%M%S.pgn", ltm);
+    std::string filename = buf;
+
+    // 4. Open file and write
+    std::ofstream outFile(filename);
+    if (outFile.is_open()) {
+        int moveNumber = 1;
+        for (size_t i = 0; i < moveHistory.size(); ++i) {
+            if (moveHistory[i].isWhiteMove) {
+                outFile << moveNumber << ". " << moveHistory[i].notation << " ";
+            }
+            else {
+                outFile << moveHistory[i].notation << " ";
+                moveNumber++;
+            }
+        }
+
+        // Add result at the end
+        std::string result = "*";
+        if (gameOver) {
+            if (resultText.find("WHITE WINS") != std::string::npos) result = "1-0";
+            else if (resultText.find("BLACK WINS") != std::string::npos) result = "0-1";
+            else if (resultText.find("DRAW") != std::string::npos) result = "1/2-1/2";
+        }
+        outFile << result;
+
+        outFile.close();
+        std::cout << "Successfully saved to: " << filename << std::endl;
+    }
+    else {
+        std::cerr << "Error: Could not create file " << filename << std::endl;
+    }
+}

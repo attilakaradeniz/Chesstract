@@ -55,6 +55,10 @@ int main() {
                 if (event.key.code == sf::Keyboard::C) {
                     myBoard.toggleCoordinates();
                 }
+                // Press 'S' to save PGN to a File
+                if (event.key.code == sf::Keyboard::S) {
+                    myBoard.savePGNToFile();
+                }
             }
 
             if (event.type == sf::Event::Closed)

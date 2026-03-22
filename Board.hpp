@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 #include <SFML/Audio.hpp>
+#include <fstream>
+#include <ctime>
 
 struct PieceSource {
     int col;
@@ -49,6 +51,8 @@ public:
     void flipBoard(); 
     void toggleCoordinates();
 	void calculateValidMoves(int startRow, int startol);
+    void epxortPGN();
+    void savePGNToFile();
 
 
 private:
