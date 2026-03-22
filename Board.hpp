@@ -130,6 +130,16 @@ private:
 	sf::Vector2i draggedPieceSource;
     sf::Vector2f mousePos;
 
+    // --- PAWN PROMOTION STATE VARIABLES ---
+    // Flag to pause the game and show the promotion menu
+    bool isPromoting = false;
+
+    // The grid coordinates where the pawn landed for promotion
+    sf::Vector2i promotionSquare = sf::Vector2i(-1, -1);
+
+    // Temporarily holds the move data until the user selects a piece
+    MoveRecord pendingPromotionMove;
+
 
     
 };
