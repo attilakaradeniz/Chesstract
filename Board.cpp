@@ -2,6 +2,12 @@
 #include "Board.hpp"
 #include <iostream>
 #include <cmath> // For std::abs
+#ifdef _WIN32
+#include <windows.h>
+#include <commdlg.h>
+#pragma comment(lib, "Comdlg32.lib")
+#endif // _WIN32
+
 
 Board::Board() :
     whiteTurn(true),
@@ -667,15 +673,53 @@ void Board::exportPGN() {
 }
 
 void Board::savePGNToFile() {
-    if (moveHistory.empty()) return;
+    if (moveHistory.empty()) {
+        std::cout << "No moves to export." << std::endl;
+        return;
+    }
 
+    std::string filename = "";
+
+#ifdef _WIN32
+    // --- NATIVE WINDOWS SAVE DIALOG ---
+    OPENFILENAMEA ofn;
+    CHAR szFile[260] = { 0 };
+
+    // Suggest a default name with the current date
     std::time_t t = std::time(nullptr);
     std::tm* ltm = std::localtime(&t);
+    std::strftime(szFile, sizeof(szFile), "game_%Y%m%d_%H%M%S.pgn", ltm);
 
-    char buf[32];
+    // Initialize OPENFILENAME structure
+    ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+    ofn.lStructSize = sizeof(OPENFILENAMEA);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "PGN Files (*.pgn)\0*.pgn\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+    ofn.lpstrDefExt = "pgn"; // Default extension
+
+    // Display the Save As dialog box
+    if (GetSaveFileNameA(&ofn) == TRUE) {
+        filename = ofn.lpstrFile;
+    }
+    else {
+        std::cout << "Save dialog canceled by user." << std::endl;
+        return; // Exit if user closed the window
+    }
+#else
+    // --- FALLBACK FOR MAC/LINUX ---
+    // If not on Windows, just save to the current working directory
+    std::time_t t = std::time(nullptr);
+    std::tm* ltm = std::localtime(&t);
+    char buf[64];
     std::strftime(buf, sizeof(buf), "game_%Y%m%d_%H%M%S.pgn", ltm);
-    std::string filename = buf;
+    filename = buf;
+#endif
 
+    // --- WRITE TO THE SELECTED FILE ---
     std::ofstream outFile(filename);
     if (outFile.is_open()) {
         int moveNumber = 1;
@@ -819,7 +863,7 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
         goToMove((int)moveHistory.size() - 1); // En sona git
     }
 
-    // --- Diğer Fonksiyonlar ---
+    // shortcuts for other functions
     else if (key == sf::Keyboard::U) {
         undoMove();
     }
