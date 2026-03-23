@@ -28,7 +28,7 @@ struct MoveRecord {
     std::string notation;
     bool isWhiteMove;
 
-	// states for undo functionality
+    // states for undo functionality
     sf::Vector2i prevLastPawnDoubleMove;
     bool prevWhiteKingMoved;
     bool prevBlackKingMoved;
@@ -36,6 +36,9 @@ struct MoveRecord {
     bool prevWhiteRook7Moved;
     bool prevBlackRook0Moved;
     bool prevBlackRook7Moved;
+
+    // --- NEW: Remember what the pawn promoted to! ---
+    PieceType promotedTo = PieceType::Empty;
 };
 
 class Board {
@@ -47,23 +50,23 @@ public:
 
     void handleMouseClick(const sf::Vector2i mousePos);
     bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
-    void undoMove(); 
-	// to navigate moves
+    void undoMove();
+    // to navigate moves
     void goToMove(int targetIndex);
     void resetBoardToStart();
     void handleKeyPress(sf::Keyboard::Key key);
 
     void exportPGN();
-    void flipBoard(); 
+    void flipBoard();
     void toggleCoordinates();
-	void calculateValidMoves(int startRow, int startol);
-    void epxortPGN();
+    void calculateValidMoves(int startRow, int startCol); // Fixed typo in declaration name in your original file
     void savePGNToFile();
+
     // functions for drag & drop
     void updateMousePos(sf::Vector2f pos) { mousePos = pos; }
     void handleMouseDown(sf::Vector2f mPos);
     void handleMouseUp(sf::Vector2f mPos);
-    
+
     // PRIVATE
 private:
     bool whiteTurn = true; // True for White's turn, False for Black's
@@ -80,6 +83,7 @@ private:
     bool blackKingMoved = false;
     bool blackRook0Moved = false; // black left rook (a8)
     bool blackRook7Moved = false; // black right rook (h8)
+
     // Checks if a specific square (row, col) is under attack by a specific color
     bool isSquareAttacked(int row, int col, bool attackerIsWhite);
     // for the algebric notation
@@ -87,10 +91,10 @@ private:
     // to find  if it is check
     sf::Vector2i findKing(bool white);
 
-	// SFML visual assets
+    // SFML visual assets
     sf::Texture piecesTexture;
     sf::Sprite pieceSprite;
-	sf::Vector2i selectedSquare = sf::Vector2i(-1, -1); // No square selected
+    sf::Vector2i selectedSquare = sf::Vector2i(-1, -1); // No square selected
 
     void loadAssets(); // to load asset
 
@@ -103,12 +107,11 @@ private:
     std::string resultText = "";
     void checkGameEnd();
 
-	bool isFlowFlipped = false; // Default is white at bottom
+    bool isFlowFlipped = false; // Default is white at bottom
 
-	std::vector<MoveRecord> moveHistory; // Store move history for PGN export
-    // fınction to export PGN
+    std::vector<MoveRecord> moveHistory; // Store move history for PGN export
 
-	bool showCoordinates = true; // Toggle for showing coordinates on the board
+    bool showCoordinates = true; // Toggle for showing coordinates on the board
 
     std::vector<sf::Vector2i> validMoves;
     sf::SoundBuffer moveBuffer;
@@ -116,18 +119,18 @@ private:
     sf::Sound moveSound;
     sf::Sound captureSound;
 
-	sf::Vector2i lastMoveStart = sf::Vector2i(-1, -1);
-	sf::Vector2i lastMoveEnd = sf::Vector2i(-1, -1);
+    sf::Vector2i lastMoveStart = sf::Vector2i(-1, -1);
+    sf::Vector2i lastMoveEnd = sf::Vector2i(-1, -1);
 
-	// to hold move history for PGN export
-	int currentMoveIndex = -1; // For navigating move history in PGN export
+    // to hold move history for PGN export
+    int currentMoveIndex = -1; // For navigating move history in PGN export
 
     void applyMoveIndependently(const MoveRecord& record);
 
-	float scrollOffset = 0.0f; 
+    float scrollOffset = 0.0f;
 
     bool isDragging = false;
-	sf::Vector2i draggedPieceSource;
+    sf::Vector2i draggedPieceSource;
     sf::Vector2f mousePos;
 
     // --- PAWN PROMOTION STATE VARIABLES ---
@@ -139,7 +142,4 @@ private:
 
     // Temporarily holds the move data until the user selects a piece
     MoveRecord pendingPromotionMove;
-
-
-    
 };

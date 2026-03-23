@@ -2,11 +2,9 @@
 #include <SFML/Graphics.hpp>
 #include "Board.hpp"
 
-/**
- * Chesstract - A simple chess application with PGN export functionality.
+/** * Chesstract - A simple chess application with PGN export functionality.
  * Purpose: Learning C++ through game development and OOP principles.
  */
-
 int main() {
     // Basic terminal output for project initialization
     std::cout << "================================" << std::endl;
@@ -17,7 +15,6 @@ int main() {
     std::cout << "C++ Standard Version: " << __cplusplus << std::endl;
     std::cout << "\nInitializing chess board..." << std::endl;
 
-    // sf::RenderWindow window(sf::VideoMode(1200, 900), "Chesstract - board render");
     // add a title bar and lock the resize option
     sf::RenderWindow window(sf::VideoMode(1200, 900), "Chesstract - board render", sf::Style::Titlebar | sf::Style::Close);
     Board myBoard;
