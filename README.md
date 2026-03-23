@@ -28,7 +28,7 @@ This project started as a personal journey to dive deep into C++, Object-Oriente
 
 
 
-\## 🚀 Roadmap (Future Plans)
+\## Roadmap (Future Plans)
 
 \* \*\*Architecture Refactoring:\*\* The current `Board` class handles both logic and rendering. The next big step is to decouple this into a strict `ChessEngine` (rules \& math) and `GameUI` (graphics \& input) architecture.
 
@@ -36,9 +36,9 @@ This project started as a personal journey to dive deep into C++, Object-Oriente
 
 
 
-\## 🛠️ Built With
+\## Built With
 
-\* C++ (Standard 14/17)
+\* C++20 (Modern C++ Standard)
 
 \* \[SFML](https://www.sfml-dev.org/) (Simple and Fast Multimedia Library)
 
