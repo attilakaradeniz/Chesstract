@@ -565,6 +565,20 @@ void Board::draw(sf::RenderWindow& window) {
             window.draw(pieceSprite);
         }
     }
+
+	//shortcuts legend at the bottom (UX)
+        // A subtle, non-intrusive text bar at the bottom of the screen
+    std::string shortcuts = "Shortcuts: [Left/Right] Navigate History | [U] Undo | [S] Save PGN | [F] Flip Board | [C] Toggle Coordinates";
+    sf::Text shortcutsText(shortcuts, font, 14);
+
+    // Use a subtle grey color so it doesn't distract from the game
+    shortcutsText.setFillColor(sf::Color(150, 150, 150));
+
+    // Position it at the bottom left, just under the board
+    shortcutsText.setPosition(offset, 8 * tileSize + offset + 15);
+
+    window.draw(shortcutsText);
+
 }
 
 bool Board::hasLegalMoves(bool white) {
