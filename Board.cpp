@@ -602,7 +602,7 @@ void Board::undoMove() {
     // --- NEW: TIME PARADOX FIX ---
         // If we travelled back in time, delete the alternate future before undoing
     if (currentMoveIndex < (int)moveHistory.size() - 1) {
-        moveHistory.erase(moveHistory.begin() + currentMoveIndex + 1, moveHistory.end());
+        moveHistory.erase(moveHistory.begin() + (currentMoveIndex + 1), moveHistory.end());
     }
 
     // Safety check in case we erased everything back to the start
@@ -724,8 +724,8 @@ void Board::savePGNToFile() {
         return; // Exit if user closed the window
     }
 #else
-    // --- FALLBACK FOR MAC/LINUX ---
-    // If not on Windows, just save to the current working directory
+    // for mac/linux
+    // if not on Windows, just save to the current working directory
     std::time_t t = std::time(nullptr);
     std::tm* ltm = std::localtime(&t);
     char buf[64];
@@ -733,7 +733,7 @@ void Board::savePGNToFile() {
     filename = buf;
 #endif
 
-    // --- WRITE TO THE SELECTED FILE ---
+	// write to selected file
     std::ofstream outFile(filename);
     if (outFile.is_open()) {
         int moveNumber = 1;
@@ -920,7 +920,7 @@ void Board::handleMouseDown(sf::Vector2f mPos) {
 void Board::handleMouseClick(const sf::Vector2i mousePos) {
     if (gameOver) return;
 
-    // --- NEW: HANDLE PROMOTION MENU CLICKS ---
+	// handle promotion menu clicks first before any other board interactions
     // If the game is waiting for a promotion choice, intercept the click for the menu
     if (isPromoting) {
         // 1. Reconstruct the menu bounds to check if the user clicked an option
@@ -952,51 +952,51 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
                     else if (i == 2) { selectedPiece = isWhitePromo ? PieceType::W_Bishop : PieceType::B_Bishop; promoChar = 'B'; }
                     else { selectedPiece = isWhitePromo ? PieceType::W_Knight : PieceType::B_Knight; promoChar = 'N'; }
 
-                    // --- EXECUTE THE PROMOTION ---
-                    // A. Transform the pawn into the chosen piece on the grid
+                    // promotion
+                    // transform the pawn into the chosen piece on the grid
                     grid[promotionSquare.y][promotionSquare.x] = selectedPiece;
 
-                    // B. Append the promotion choice to the algebraic notation (e.g., "e8=R")
+                    // append the promotion choice to the algebraic notation (e.g., "e8=R")
                     pendingPromotionMove.notation += "=";
                     pendingPromotionMove.notation += promoChar;
 
-                    // --- FIX: Save the chosen piece to our history record so undo/redo works! ---
+                    // save the chosen piece to our history record so undo/redo works! ---
                     pendingPromotionMove.promotedTo = selectedPiece;
 
-                    // C. Re-evaluate Check/Mate now that the NEW piece is on the board
+                    // re-evaluate Check/Mate now that the NEW piece is on the board
                     sf::Vector2i opponentKing = findKing(!isWhitePromo);
                     bool isCheck = isSquareAttacked(opponentKing.y, opponentKing.x, isWhitePromo);
                     if (isCheck) pendingPromotionMove.notation += (!hasLegalMoves(!isWhitePromo)) ? "#" : "+";
 
-                    // D. Save the finalized move to history
+                    // save the finalized move to history
                     if (currentMoveIndex < (int)moveHistory.size() - 1) {
-                        moveHistory.erase(moveHistory.begin() + currentMoveIndex + 1, moveHistory.end());
+                        moveHistory.erase(moveHistory.begin() + (currentMoveIndex + 1), moveHistory.end());
                     }
                     moveHistory.push_back(pendingPromotionMove);
                     currentMoveIndex = (int)moveHistory.size() - 1;
 
-                    // E. Play sound based on the final move state
+                    // play sound based on the final move state
                     if (isCheck || pendingPromotionMove.capturedPiece != PieceType::Empty) captureSound.play();
                     else moveSound.play();
 
                     std::cout << (isWhitePromo ? "White promoted: " : "Black promoted: ") << pendingPromotionMove.notation << std::endl;
 
-                    // F. Finalize the turn and close the menu
+                    // finalize the turn and close the menu
                     whiteTurn = !whiteTurn;
                     checkGameEnd();
 
                     isPromoting = false;
                     promotionSquare = sf::Vector2i(-1, -1);
-                    return; // Exit successfully, move is complete!
+                    return; // exit successfully, move is complete!
                 }
             }
         }
 
-        // If they clicked outside the menu squares, we just return and force them to choose
+        // if they clicked outside the menu squares, we just return and force them to choose
         return;
     }
 
-    // Convert screen coordinates to grid indices
+    // convert screen coordinates to grid indices
     int col = (mousePos.x - (int)offset) / (int)tileSize;
     int row = (mousePos.y - (int)offset) / (int)tileSize;
 
@@ -1129,7 +1129,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
 
             // Delete any alternate future if we travelled back in time
             if (currentMoveIndex < (int)moveHistory.size() - 1) {
-                moveHistory.erase(moveHistory.begin() + currentMoveIndex + 1, moveHistory.end());
+                moveHistory.erase(moveHistory.begin() + (currentMoveIndex + 1), moveHistory.end());
             }
 
             moveHistory.push_back(record);
