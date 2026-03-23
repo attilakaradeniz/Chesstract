@@ -318,7 +318,7 @@ void Board::draw(sf::RenderWindow& window) {
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
             window.draw(square);
 
-            // --- STYLIZED NATIVE "CHECK" GLOW ---
+            // stylish check glow
             float centerX = renderCol * tileSize + offset + tileSize / 2.0f;
             float centerY = renderRow * tileSize + offset + tileSize / 2.0f;
 
@@ -381,7 +381,7 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    // --- DRAW DRAGGED PIECE ON TOP ---
+    // draw dragged piece on top
     if (isDragging) {
         // Get the type of the piece that was picked up
         PieceType type = grid[draggedPieceSource.y][draggedPieceSource.x];
@@ -402,7 +402,7 @@ void Board::draw(sf::RenderWindow& window) {
         pieceSprite.setOrigin(0, 0);
     }
 
-    // Draw Dots and Rings
+    // draw dots and rings
     for (const auto& move : validMoves) {
         int rRow = isFlowFlipped ? (7 - move.y) : move.y;
         int rCol = isFlowFlipped ? (7 - move.x) : move.x;
@@ -423,12 +423,12 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    // Side Panel Notation Background
+    // side panel notation background
     sf::RectangleShape sidePanel(sf::Vector2f(300, 900));
     sidePanel.setPosition(900, 0); sidePanel.setFillColor(sf::Color(45, 45, 45));
     window.draw(sidePanel);
 
-    // --- MOVE HISTORY WITH SCROLLING ---
+    // move history with scrolling
     sf::Text title("Move History", font, 24);
     title.setPosition(920, 20);
     window.draw(title);
@@ -514,7 +514,7 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    // --- STEP 3: DRAW PAWN PROMOTION MENU ---
+    // draw pawn promotion menu
     if (isPromoting) {
         // 1. Determine the color explicitly using the frozen turn state
         bool isWhitePromo = whiteTurn;
@@ -526,7 +526,7 @@ void Board::draw(sf::RenderWindow& window) {
             isWhitePromo ? PieceType::W_Knight : PieceType::B_Knight
         };
 
-        // 3. Calculate rendering coordinates based on the promotion square
+        // calculate rendering coordinates based on the promotion square
         int rRow = isFlowFlipped ? (7 - promotionSquare.y) : promotionSquare.y;
         int rCol = isFlowFlipped ? (7 - promotionSquare.x) : promotionSquare.x;
 
@@ -578,6 +578,16 @@ bool Board::hasLegalMoves(bool white) {
 
 void Board::undoMove() {
     if (moveHistory.empty()) return;
+
+    // --- NEW: TIME PARADOX FIX ---
+        // If we travelled back in time, delete the alternate future before undoing
+    if (currentMoveIndex < (int)moveHistory.size() - 1) {
+        moveHistory.erase(moveHistory.begin() + currentMoveIndex + 1, moveHistory.end());
+    }
+
+    // Safety check in case we erased everything back to the start
+    if (moveHistory.empty()) return;
+
     MoveRecord last = moveHistory.back(); moveHistory.pop_back();
     grid[last.start.y][last.start.x] = last.movedPiece;
     grid[last.end.y][last.end.x] = last.capturedPiece;
@@ -743,13 +753,13 @@ void Board::applyMoveIndependently(const MoveRecord& record) {
         grid[record.end.y][record.end.x] = record.promotedTo;
     }
     else {
-        // Standard piece move
+        // standard piece move
         grid[record.end.y][record.end.x] = record.movedPiece;
     }
 
     grid[record.start.y][record.start.x] = PieceType::Empty;
 
-    // 2. En Passant
+    // 2. en passant
     if ((record.movedPiece == PieceType::W_Pawn || record.movedPiece == PieceType::B_Pawn) &&
         record.start.x != record.end.x && record.capturedPiece == PieceType::Empty) {
         grid[record.start.y][record.end.x] = PieceType::Empty;
@@ -792,7 +802,10 @@ void Board::goToMove(int targetIndex) {
 }
 
 void Board::handleKeyPress(sf::Keyboard::Key key) {
-    // --- Navigasyon Okları ---
+    //  block keyboard while promoting 
+    if (isPromoting) return;
+
+    // navigation arrows 
     if (key == sf::Keyboard::Left) {
         goToMove(currentMoveIndex - 1);
     }
@@ -825,6 +838,9 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
 }
 
 void Board::handleMouseDown(sf::Vector2f mPos) {
+    // --- NEW: BLOCK DRAGGING WHILE PROMOTING ---
+    if (isPromoting) return;
+
     int col = static_cast<int>((mPos.x - offset) / tileSize);
     int row = static_cast<int>((mPos.y - offset) / tileSize);
 
