@@ -59,7 +59,7 @@ public:
     void exportPGN();
     void flipBoard();
     void toggleCoordinates();
-    void calculateValidMoves(int startRow, int startCol); // Fixed typo in declaration name in your original file
+    void calculateValidMoves(int startRow, int startCol); // Fixed typo in declaration name 
     void savePGNToFile();
 
     // functions for drag & drop
@@ -84,7 +84,7 @@ private:
     bool blackRook0Moved = false; // black left rook (a8)
     bool blackRook7Moved = false; // black right rook (h8)
 
-    // Checks if a specific square (row, col) is under attack by a specific color
+    // checks if a specific square (row, col) is under attack by a specific color
     bool isSquareAttacked(int row, int col, bool attackerIsWhite);
     // for the algebric notation
     char getPieceChar(PieceType type);
@@ -94,11 +94,11 @@ private:
     // SFML visual assets
     sf::Texture piecesTexture;
     sf::Sprite pieceSprite;
-    sf::Vector2i selectedSquare = sf::Vector2i(-1, -1); // No square selected
+    sf::Vector2i selectedSquare = sf::Vector2i(-1, -1); // no square selected
 
     void loadAssets(); // to load asset
 
-    bool isWhite(PieceType type); // Add this helper function here
+    bool isWhite(PieceType type); 
 
     bool hasLegalMoves(bool white);
 
@@ -109,7 +109,7 @@ private:
 
     bool isFlowFlipped = false; // Default is white at bottom
 
-    std::vector<MoveRecord> moveHistory; // Store move history for PGN export
+    std::vector<MoveRecord> moveHistory; // move history for PGN export
 
     bool showCoordinates = true; // Toggle for showing coordinates on the board
 
@@ -123,7 +123,7 @@ private:
     sf::Vector2i lastMoveEnd = sf::Vector2i(-1, -1);
 
     // to hold move history for PGN export
-    int currentMoveIndex = -1; // For navigating move history in PGN export
+    int currentMoveIndex = -1; // for navigating move history in PGN export
 
     void applyMoveIndependently(const MoveRecord& record);
 
@@ -133,13 +133,13 @@ private:
     sf::Vector2i draggedPieceSource;
     sf::Vector2f mousePos;
 
-    // --- PAWN PROMOTION STATE VARIABLES ---
-    // Flag to pause the game and show the promotion menu
+	// pawn promotion related members
+    // flag to pause the game and show the promotion menu
     bool isPromoting = false;
 
-    // The grid coordinates where the pawn landed for promotion
+    // grid coordinates where the pawn landed for promotion
     sf::Vector2i promotionSquare = sf::Vector2i(-1, -1);
 
-    // Temporarily holds the move data until the user selects a piece
+    // temporarily holds the move data until the user selects a piece
     MoveRecord pendingPromotionMove;
 };

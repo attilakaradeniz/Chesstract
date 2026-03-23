@@ -11,7 +11,7 @@ int main() {
     std::cout << "   Chesstract Project Started   " << std::endl;
     std::cout << "================================" << std::endl;
 
-    // Check the current C++ standard version being used
+    // heck the current C++ standard version being used
     std::cout << "C++ Standard Version: " << __cplusplus << std::endl;
     std::cout << "\nInitializing chess board..." << std::endl;
 
@@ -31,16 +31,16 @@ int main() {
                 myBoard.handleKeyPress(event.key.code);
             }
 
-            // --- DRAG & DROP  ---
+            // drag & drop
 
-            // A. mouse movement (piece sticks to mouse pointer)
+            // mouse movement (piece sticks to mouse pointer)
             if (event.type == sf::Event::MouseMoved) {
                 // SFML 
                 sf::Vector2f mPos = window.mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
                 myBoard.updateMousePos(mPos);
             }
 
-            // --- DRAG & DROP AND CLICK LOGIC ---
+            // drag & drop AND click logic     
 
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Left) {
@@ -58,7 +58,7 @@ int main() {
                     myBoard.handleMouseUp(mPos);
 
                     // 2. Second, process the click. 
-                    // If the user dragged to a new square, handleMouseClick will see 
+                    // if the user dragged to a new square, handleMouseClick will see 
                     // that a square was already selected (from MouseDown) and move it there.
                     myBoard.handleMouseClick(sf::Vector2i(static_cast<int>(mPos.x), static_cast<int>(mPos.y)));
                 }

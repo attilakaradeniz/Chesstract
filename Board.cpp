@@ -1,7 +1,7 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Board.hpp"
 #include <iostream>
-#include <cmath> // For std::abs
+#include <cmath> 
 #ifdef _WIN32
 #include <windows.h>
 #include <commdlg.h>
@@ -97,7 +97,7 @@ void Board::loadAssets() {
     moveSound.setVolume(75.f);
     captureSound.setVolume(85.f);
 
-    // 4. Finalize Setup
+    // finalize Setup
     setupPieceSources();
 }
 
@@ -328,16 +328,16 @@ void Board::draw(sf::RenderWindow& window) {
             float centerX = renderCol * tileSize + offset + tileSize / 2.0f;
             float centerY = renderRow * tileSize + offset + tileSize / 2.0f;
 
-            // If White King is in check and this is his square
+            // if White King is in check and this is his square
             if (isWCheck && sf::Vector2i(j, i) == wKingPos) {
-                // Draw 4 concentric circles to create a soft, degrading glow effect
+                // draw 4 concentric circles to create a soft, degrading glow effect
                 for (int step = 0; step < 4; ++step) {
-                    float radius = (tileSize / 2.5f) + (step * 10.0f); // Expands outward beyond the square
+                    float radius = (tileSize / 2.5f) + (step * 10.0f); // expands outward beyond the square
                     sf::CircleShape glow(radius);
                     glow.setOrigin(radius, radius);
                     glow.setPosition(centerX, centerY);
 
-                    // Decrease opacity as radius increases
+                    // decrease opacity as radius increases
                     glow.setFillColor(sf::Color(255, 0, 0, 150 - (step * 40)));
                     window.draw(glow);
                 }
@@ -375,12 +375,12 @@ void Board::draw(sf::RenderWindow& window) {
                 }
             }
 
-            // Inside the nested loop for drawing squares:
+            // Inside the nested loop for drawing squares
             // for last move and turn indicator
             if (sf::Vector2i(j, i) == lastMoveStart || sf::Vector2i(j, i) == lastMoveEnd) {
                 sf::RectangleShape highlight(sf::Vector2f(tileSize, tileSize));
                 highlight.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
-                // Light yellow with some transparency
+                // light yellow with some transparency
                 highlight.setFillColor(sf::Color(255, 255, 0, 35));
                 window.draw(highlight);
             }
@@ -439,7 +439,7 @@ void Board::draw(sf::RenderWindow& window) {
     title.setPosition(920, 20);
     window.draw(title);
 
-    // Otomatik Scroll Hesaplama
+    // Scroll 
     int activeRow = (currentMoveIndex / 2);
     float targetY = 70 + (activeRow * 25);
     if (targetY > 800) {
@@ -455,7 +455,7 @@ void Board::draw(sf::RenderWindow& window) {
         float xPos = (i % 2 == 0) ? 930 : 1060;
         float yPos = 70 + ((turnNumber - 1) * 25) - scrollOffset;
 
-        // Kırpma (Clipping): Sadece panel içindeyse çiz
+        // Clipping, side panel for moves
         if (yPos > 60 && yPos < 860) {
             std::string moveStr = (i % 2 == 0) ? (std::to_string(turnNumber) + ". " + moveHistory[i].notation) : moveHistory[i].notation;
             moveText.setString(moveStr);
@@ -473,7 +473,7 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    // --- 3D PULSING TURN INDICATOR ---
+    // pulsing turn indicator (like pingpong ball)
     float baseRadius = 15.f;
     float currentRadius = baseRadius * pulseScale;
 
@@ -522,9 +522,9 @@ void Board::draw(sf::RenderWindow& window) {
 
     // draw pawn promotion menu
     if (isPromoting) {
-        // 1. Determine the color explicitly using the frozen turn state
+        // determine the color explicitly using the frozen turn state
         bool isWhitePromo = whiteTurn;
-        // 2. Define the 4 promotion options in order (Queen, Rook, Bishop, Knight)
+        // define the 4 promotion options in order (Queen, Rook, Bishop, Knight)
         PieceType options[4] = {
             isWhitePromo ? PieceType::W_Queen : PieceType::B_Queen,
             isWhitePromo ? PieceType::W_Rook : PieceType::B_Rook,
@@ -539,10 +539,10 @@ void Board::draw(sf::RenderWindow& window) {
         float startX = rCol * tileSize + offset;
         float startY = rRow * tileSize + offset;
 
-        // 4. Determine menu draw direction
+        // determine menu draw direction
         int drawDirection = (rRow < 4) ? 1 : -1;
 
-        // 5. Draw the menu background
+        // draw the menu background
         sf::RectangleShape menuBg(sf::Vector2f(tileSize, tileSize * 4));
         if (drawDirection == -1) {
             menuBg.setPosition(startX, startY - (tileSize * 3));
@@ -555,7 +555,7 @@ void Board::draw(sf::RenderWindow& window) {
         menuBg.setOutlineColor(sf::Color(50, 50, 50));
         window.draw(menuBg);
 
-        // 6. Draw the 4 piece sprites inside the menu
+        // draw the 4 piece sprites inside the menu
         for (int i = 0; i < 4; ++i) {
             PieceSource src = pieceSourceMap[options[i]];
             pieceSprite.setTextureRect(sf::IntRect(src.col * sourceSize, src.row * sourceSize, sourceSize, sourceSize));
@@ -567,14 +567,14 @@ void Board::draw(sf::RenderWindow& window) {
     }
 
 	//shortcuts legend at the bottom (UX)
-        // A subtle, non-intrusive text bar at the bottom of the screen
+        // text bar at the bottom
     std::string shortcuts = "Shortcuts: [Left/Right] Navigate History | [U] Undo | [S] Save PGN | [F] Flip Board | [C] Toggle Coordinates";
     sf::Text shortcutsText(shortcuts, font, 14);
 
-    // Use a subtle grey color so it doesn't distract from the game
+    // grey color
     shortcutsText.setFillColor(sf::Color(150, 150, 150));
 
-    // Position it at the bottom left, just under the board
+    // position it at the bottom left, just under the board
     shortcutsText.setPosition(offset, 8 * tileSize + offset + 15);
 
     window.draw(shortcutsText);
@@ -599,13 +599,13 @@ bool Board::hasLegalMoves(bool white) {
 void Board::undoMove() {
     if (moveHistory.empty()) return;
 
-    // --- NEW: TIME PARADOX FIX ---
-        // If we travelled back in time, delete the alternate future before undoing
+    // paradox fix
+        // if we travelled back in time, delete the alternate future before undoing
     if (currentMoveIndex < (int)moveHistory.size() - 1) {
         moveHistory.erase(moveHistory.begin() + (currentMoveIndex + 1), moveHistory.end());
     }
 
-    // Safety check in case we erased everything back to the start
+    // safety check in case we erased everything back to the start
     if (moveHistory.empty()) return;
 
     MoveRecord last = moveHistory.back(); moveHistory.pop_back();
@@ -695,7 +695,7 @@ void Board::savePGNToFile() {
     std::string filename = "";
 
 #ifdef _WIN32
-    // --- NATIVE WINDOWS SAVE DIALOG ---
+	// windoes save dialog
     OPENFILENAMEA ofn;
     CHAR szFile[260] = { 0 };
 
@@ -764,11 +764,11 @@ void Board::savePGNToFile() {
 }
 
 void Board::resetBoardToStart() {
-    // 1. reset all flags
+    //reset all flags
     whiteTurn = true;
     gameOver = false;
 
-    // FIX: Clear promotion states so undoing out of a promotion menu doesn't break the game
+    // FIX: Clear promotion states so undoing a promotion menu doesn't break the game
     isPromoting = false;
     promotionSquare = sf::Vector2i(-1, -1);
 
@@ -781,14 +781,14 @@ void Board::resetBoardToStart() {
     lastPawnDoubleMove = sf::Vector2i(-1, -1);
     // REMOVED moveHistory.clear(); from here! It caused the crash.
 
-    // 2. clear the board (Empty)
+    // clear the board (Empty)
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             grid[i][j] = PieceType::Empty;
         }
     }
 
-    // 3. pieces openning plaeces(same in the Constructor)
+    // pieces openning plaeces
     for (int i = 0; i < 8; ++i) {
         grid[1][i] = PieceType::B_Pawn;
         grid[6][i] = PieceType::W_Pawn;
@@ -805,7 +805,7 @@ void Board::resetBoardToStart() {
 
 void Board::applyMoveIndependently(const MoveRecord& record) {
 
-    // 1. Standard piece move or Promotion placement
+    // standard piece move or Promotion placement
     if (record.promotedTo != PieceType::Empty) {
         // Place the PROMOTED piece (Queen, Rook, etc.) on the final square
         grid[record.end.y][record.end.x] = record.promotedTo;
@@ -817,13 +817,13 @@ void Board::applyMoveIndependently(const MoveRecord& record) {
 
     grid[record.start.y][record.start.x] = PieceType::Empty;
 
-    // 2. en passant
+    // en passant
     if ((record.movedPiece == PieceType::W_Pawn || record.movedPiece == PieceType::B_Pawn) &&
         record.start.x != record.end.x && record.capturedPiece == PieceType::Empty) {
         grid[record.start.y][record.end.x] = PieceType::Empty;
     }
 
-    // 3. Castle 
+    // castle 
     if ((record.movedPiece == PieceType::W_King || record.movedPiece == PieceType::B_King) &&
         std::abs(record.end.x - record.start.x) == 2) {
         if (record.end.x == 6) { // Short Castle (Kingside)
@@ -871,10 +871,10 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
         goToMove(currentMoveIndex + 1);
     }
     else if (key == sf::Keyboard::Up) {
-        goToMove(-1); // En başa dön
+		goToMove(-1); // starting position
     }
     else if (key == sf::Keyboard::Down) {
-        goToMove((int)moveHistory.size() - 1); // En sona git
+		goToMove((int)moveHistory.size() - 1); // last state (most recent move)
     }
 
     // shortcuts for other functions
@@ -896,7 +896,7 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
 }
 
 void Board::handleMouseDown(sf::Vector2f mPos) {
-    // --- NEW: BLOCK DRAGGING WHILE PROMOTING ---
+    // block dragging while promoting
     if (isPromoting) return;
 
     int col = static_cast<int>((mPos.x - offset) / tileSize);
@@ -923,7 +923,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
 	// handle promotion menu clicks first before any other board interactions
     // If the game is waiting for a promotion choice, intercept the click for the menu
     if (isPromoting) {
-        // 1. Reconstruct the menu bounds to check if the user clicked an option
+        // reconstruct the menu bounds to check if the user clicked an option
         int rRow = isFlowFlipped ? (7 - promotionSquare.y) : promotionSquare.y;
         int rCol = isFlowFlipped ? (7 - promotionSquare.x) : promotionSquare.x;
 
@@ -931,14 +931,14 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
         float startY = rRow * tileSize + offset;
         int drawDirection = (rRow < 4) ? 1 : -1;
 
-        // 2. Check if the mouse X coordinate is within the menu column
+        // check if the mouse X coordinate is within the menu column
         if (mousePos.x >= startX && mousePos.x <= startX + tileSize) {
 
-            // 3. Check which of the 4 pieces was clicked based on Y coordinate
+            // check which of the 4 pieces was clicked based on Y coordinate
             for (int i = 0; i < 4; ++i) {
                 float pieceY = startY + (i * tileSize * drawDirection);
 
-                // If the click is inside this specific piece's bounding box
+                // if the click is inside this specific piece's bounding box
                 if (mousePos.y >= pieceY && mousePos.y <= pieceY + tileSize) {
 
                     // FIX: Use the frozen turn state to determine promotion color reliably
@@ -992,7 +992,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             }
         }
 
-        // if they clicked outside the menu squares, we just return and force them to choose
+        // if they clicked outside the menu squares, just return and force them to choose
         return;
     }
 
@@ -1003,10 +1003,10 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
     // Adjust for flipped board view
     if (isFlowFlipped) { col = 7 - col; row = 7 - row; }
 
-    // Out of bounds check
+    // out of bounds check
     if (col < 0 || col >= 8 || row < 0 || row >= 8) return;
 
-    // If a piece is already selected, try to move it
+    // if a piece is already selected, try to move it
     if (selectedSquare != sf::Vector2i(-1, -1)) {
         PieceType movingPiece = grid[selectedSquare.y][selectedSquare.x];
         PieceType targetPiece = grid[row][col];
@@ -1019,7 +1019,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
         // Check if the clicked target is a valid move
         if (isMoveValid(selectedSquare.y, selectedSquare.x, row, col)) {
 
-            // --- ACTUAL CHESS LOGIC AND NOTATION GENERATION ---
+            // notation generation
             bool isCapture = (targetPiece != PieceType::Empty);
             char pieceChar = getPieceChar(movingPiece);
             std::string moveNotation = "";
@@ -1055,7 +1055,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             record.prevBlackRook0Moved = blackRook0Moved;
             record.prevBlackRook7Moved = blackRook7Moved;
 
-            // --- NEW: PROMOTION INTERCEPTOR ---
+            // promotion     
             bool isPromotion = (movingPiece == PieceType::W_Pawn && row == 0) ||
                 (movingPiece == PieceType::B_Pawn && row == 7);
 
@@ -1064,23 +1064,23 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
                 grid[row][col] = movingPiece;
                 grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
 
-                // 2. Save the base move notation
+                // save the base move notation
                 record.notation = moveNotation;
 
-                // 3. Store all the details of this pending move into our new variable
+                // store all the details of this pending move into our new variable
                 pendingPromotionMove = record;
 
-                // 4. Activate the Promotion State
+                // 4activate the Promotion State
                 isPromoting = true;
                 promotionSquare = sf::Vector2i(col, row);
 
-                // 5. Clean up visuals
+                // clean up visuals
                 selectedSquare = sf::Vector2i(-1, -1);
                 validMoves.clear();
                 lastMoveStart = pendingPromotionMove.start;
                 lastMoveEnd = sf::Vector2i(col, row);
 
-                // 6. FREEZE THE GAME: Exit the function early!
+                // FREEZE THE GAME: Exit the function early!
                 std::cout << "Game Paused: Waiting for promotion selection..." << std::endl;
                 return;
             }
