@@ -9,7 +9,7 @@ This project started as a personal journey to dive deep into C++ and game state 
 ##  Current Features
 * **Complete Rule Implementation:** Supports all rules including Castling, En Passant, and Pawn Promotion.
 * **Interactive UI:** Smooth Drag & Drop mechanics alongside traditional click-to-move functionality.
-* **Move Notation** Navigate through move history using arrow keys, or use the `Undo` feature to rewrite history.
+* **Move Notation:** Navigate through move history using arrow keys, or use the `Undo` feature to rewrite history.
 * **PGN Export:** Generates standard PGN formats and exports them using a native Windows Save dialog.
 * **Visual Polish:** Dynamic highlights for last moves, valid move dots, and pulsating danger zones when a King is in check.
 
