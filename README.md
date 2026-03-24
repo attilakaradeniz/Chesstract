@@ -2,7 +2,7 @@
 
 Chesstract is a desktop chess application built with **C++** and **SFML**. 
 
-This project started as a personal journey to dive deep into C++ and game state management. What began as a simple grid has evolved into a fully functional chess board with interactive move history and PGN generation!"
+This project started as a personal journey to dive deep into C++ and game state management. What began as a simple grid has evolved into a fully functional chess board with interactive move history and PGN generation!
 
 ![Chesstract Screenshot](screenshot.png)
 
