@@ -72,6 +72,10 @@ bool Board::isWhite(PieceType type) {
 void Board::loadAssets() {
     // 1. Load Piece Texture
     if (!piecesTexture.loadFromFile("assets/pieces.png")) {
+    //if (!piecesTexture.loadFromFile("assets/pieces_pixelled.png")) {
+    //if (!piecesTexture.loadFromFile("assets/pieces_redgreen.png")) {
+    //if (!piecesTexture.loadFromFile("assets/pieces_fenset.png")) {
+    //if (!piecesTexture.loadFromFile("assets/pieces_fenset_60x60.png")) {
         std::cerr << "Error: Could not load assets/pieces.png!" << std::endl;
     }
     piecesTexture.setSmooth(true);
@@ -300,6 +304,8 @@ void Board::checkGameEnd() {
 
 void Board::draw(sf::RenderWindow& window) {
     const int sourceSize = 45;
+    //const int sourceSize = 60;
+
     const float scale = tileSize / (float)sourceSize;
     pieceSprite.setScale(scale, scale);
 
@@ -322,6 +328,8 @@ void Board::draw(sf::RenderWindow& window) {
             sf::RectangleShape square(sf::Vector2f(tileSize, tileSize));
             square.setPosition(renderCol * tileSize + offset, renderRow * tileSize + offset);
             square.setFillColor(((i + j) % 2 == 0) ? sf::Color(235, 235, 210) : sf::Color(180, 50, 50));
+            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(35, 35, 10) : sf::Color(80, 10, 10));
+            //square.setFillColor(((i + j) % 2 == 0) ? sf::Color(110,110, 110) : sf::Color(50, 10, 10));
             window.draw(square);
 
             // stylish check glow
