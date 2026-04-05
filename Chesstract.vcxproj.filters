@@ -29,7 +29,7 @@
     <ClInclude Include="Board.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="chessRules.hpp">
+    <ClInclude Include="ChessRules.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
