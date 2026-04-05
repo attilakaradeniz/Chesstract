@@ -1062,28 +1062,55 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
 
             //moveNotation += (char)('a' + col);
             //moveNotation += std::to_string(8 - row);
-// --- NOTATION GENERATION UPDATED ---
+
             if (pieceChar != ' ') {
                 moveNotation += pieceChar;
 
-                // Knight (At) veya Rook (Kale) gibi taşlarda belirsizlik kontrolü
+                // Check for ambiguity if the moving piece is a Knight or a Rook
                 if (movingPiece == PieceType::W_Knight || movingPiece == PieceType::B_Knight ||
                     movingPiece == PieceType::W_Rook || movingPiece == PieceType::B_Rook)
                 {
+                    // Verify if another piece of the same type can reach the target square
                     if (needsDisambiguation(selectedSquare.y, selectedSquare.x, row, col, movingPiece)) {
-                        // Eğer belirsizlik varsa, hangi sütundan geldiğini ekle (Örn: 'g' as in Ngf3)
-                        moveNotation += (char)('a' + selectedSquare.x);
+
+                        bool sameFile = false;
+                        // Iterate through the board to find the conflicting piece
+                        for (int r = 0; r < 8; ++r) {
+                            for (int c = 0; c < 8; ++c) {
+                                // Look for another piece of the same type and color
+                                if (grid[r][c] == movingPiece && (r != selectedSquare.y || c != selectedSquare.x)) {
+                                    // If this other piece can also move to the target square
+                                    if (isMoveValid(r, c, row, col)) {
+                                        // Check if it's on the same file (column)
+                                        if (c == selectedSquare.x) {
+                                            sameFile = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (sameFile) {
+                            // If on the same file, use the rank (row) for disambiguation (e.g., R3h2)
+                            moveNotation += std::to_string(8 - selectedSquare.y);
+                        }
+                        else {
+                            // If on different files, use the file (column) letter (e.g., Ngf3)
+                            moveNotation += (char)('a' + selectedSquare.x);
+                        }
                     }
                 }
             }
             else if (isCapture) {
-                moveNotation += (char)('a' + selectedSquare.x); // Piyon alımlarında sütun her zaman yazılır
+                // For pawn captures, the starting file is always required (e.g., exd5)
+                moveNotation += (char)('a' + selectedSquare.x);
             }
 
             if (isCapture) moveNotation += "x";
             moveNotation += (char)('a' + col);
             moveNotation += std::to_string(8 - row);
-            // ------------------------------------
+            // ---------------------------------------------------------
+
 
             // Record History for PGN and Undo (FIXED: Placed BEFORE early return to capture all data properly)
             MoveRecord record;
