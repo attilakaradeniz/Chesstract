@@ -50,6 +50,10 @@ public:
 
     void handleMouseClick(const sf::Vector2i mousePos);
     bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
+
+	// for fixing notation ambiguities (e.g. two knights can move to the same square, so we need to specify which one)
+    bool needsDisambiguation(int startRow, int startCol, int endRow, int endCol, PieceType type);
+
     void undoMove();
     // to navigate moves
     void goToMove(int targetIndex);

@@ -281,6 +281,22 @@ bool Board::isMoveValid(int startRow, int startCol, int endRow, int endCol) {
     return !kingInDanger;
 }
 
+// for fixing notation ambiguities (e.g. two knights can move to the same square, so we need to specify which one)
+bool Board::needsDisambiguation(int startRow, int startCol, int endRow, int endCol, PieceType type) {
+    for (int r = 0; r < 8; ++r) {
+        for (int c = 0; c < 8; ++c) {
+            // Eğer aynı tipte, aynı renkte ama FARKLI bir taştan bahsediyorsak
+            if (grid[r][c] == type && (r != startRow || c != startCol)) {
+                // Bu diğer taş da aynı yere gidebiliyor mu?
+                if (isMoveValid(r, c, endRow, endCol)) {
+                    return true; // Evet, bir belirsizlik var!
+                }
+            }
+        }
+    }
+    return false;
+}
+
 char Board::getPieceChar(PieceType type) {
     switch (type) {
     case PieceType::W_King:   case PieceType::B_King:   return 'K';
@@ -1039,13 +1055,35 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             }
 
             // Build basic notation string
-            if (pieceChar != ' ') moveNotation += pieceChar;
-            else if (isCapture) moveNotation += (char)('a' + selectedSquare.x);
+            //if (pieceChar != ' ') moveNotation += pieceChar;
+            //else if (isCapture) moveNotation += (char)('a' + selectedSquare.x);
+
+            //if (isCapture) moveNotation += "x";
+
+            //moveNotation += (char)('a' + col);
+            //moveNotation += std::to_string(8 - row);
+// --- NOTATION GENERATION UPDATED ---
+            if (pieceChar != ' ') {
+                moveNotation += pieceChar;
+
+                // Knight (At) veya Rook (Kale) gibi taşlarda belirsizlik kontrolü
+                if (movingPiece == PieceType::W_Knight || movingPiece == PieceType::B_Knight ||
+                    movingPiece == PieceType::W_Rook || movingPiece == PieceType::B_Rook)
+                {
+                    if (needsDisambiguation(selectedSquare.y, selectedSquare.x, row, col, movingPiece)) {
+                        // Eğer belirsizlik varsa, hangi sütundan geldiğini ekle (Örn: 'g' as in Ngf3)
+                        moveNotation += (char)('a' + selectedSquare.x);
+                    }
+                }
+            }
+            else if (isCapture) {
+                moveNotation += (char)('a' + selectedSquare.x); // Piyon alımlarında sütun her zaman yazılır
+            }
 
             if (isCapture) moveNotation += "x";
-
             moveNotation += (char)('a' + col);
             moveNotation += std::to_string(8 - row);
+            // ------------------------------------
 
             // Record History for PGN and Undo (FIXED: Placed BEFORE early return to capture all data properly)
             MoveRecord record;
