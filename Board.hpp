@@ -83,5 +83,7 @@ private:
     // process move function
     void executeMove(int row, int col, PieceType movingPiece, PieceType targetPiece, std::string moveNotation, bool isCapture);
 
+	// build notation function
+    std::string buildNotation(sf::Vector2i start, sf::Vector2i end, PieceType movingPiece, PieceType targetPiece);
 
 };

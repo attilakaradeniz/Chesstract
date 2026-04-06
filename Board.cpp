@@ -394,6 +394,43 @@ void Board::executeMove(int row, int col, PieceType movingPiece, PieceType targe
 
 }
 
+std::string Board::buildNotation(sf::Vector2i start, sf::Vector2i end, PieceType movingPiece, PieceType targetPiece) {
+    bool isCapture = (targetPiece != PieceType::Empty);
+    char pieceChar = getPieceChar(movingPiece);
+    std::string moveNotation = "";
+
+    // En Passant Capture Logic (Notation context)
+    if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && end.x != start.x && targetPiece == PieceType::Empty) {
+        isCapture = true;
+    }
+
+    if (pieceChar != ' ') {
+        moveNotation += pieceChar;
+        if (movingPiece == PieceType::W_Knight || movingPiece == PieceType::B_Knight ||
+            movingPiece == PieceType::W_Rook || movingPiece == PieceType::B_Rook) {
+            if (gameRules.needsDisambiguation(start.y, start.x, end.y, end.x, movingPiece)) {
+                bool sameFile = false;
+                for (int r = 0; r < 8; ++r) {
+                    for (int c = 0; c < 8; ++c) {
+                        if (gameRules.grid[r][c] == movingPiece && (r != start.y || c != start.x)) {
+                            if (gameRules.isMoveValid(r, c, end.y, end.x) && c == start.x) sameFile = true;
+                        }
+                    }
+                }
+                if (sameFile) moveNotation += std::to_string(8 - start.y);
+                else moveNotation += (char)('a' + start.x);
+            }
+        }
+    }
+    else if (isCapture) moveNotation += (char)('a' + start.x);
+
+    if (isCapture) moveNotation += "x";
+    moveNotation += (char)('a' + end.x);
+    moveNotation += std::to_string(8 - end.y);
+
+    return moveNotation;
+}
+
 void Board::handleMouseClick(const sf::Vector2i mousePos) {
     if (gameRules.gameOver) return;
 
@@ -412,41 +449,15 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
         if (selectedSquare == sf::Vector2i(col, row)) return;
 
         if (gameRules.isMoveValid(selectedSquare.y, selectedSquare.x, row, col)) {
-            bool isCapture = (targetPiece != PieceType::Empty);
-            char pieceChar = getPieceChar(movingPiece);
-            std::string moveNotation = "";
+            // build notation function call here 
+			std::string moveNotation = buildNotation(selectedSquare, sf::Vector2i(col, row), movingPiece, targetPiece);
+            bool isCapture = (targetPiece != PieceType::Empty) ||
+                ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && col != selectedSquare.x);
 
-            // En Passant Capture Logic
-            if ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && col != selectedSquare.x && targetPiece == PieceType::Empty) {
-                isCapture = true;
+            // If it's en-passant, clear the pawn from the grid manually before executeMove
+            if (isCapture && targetPiece == PieceType::Empty && (movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn)) {
                 gameRules.grid[selectedSquare.y][col] = PieceType::Empty;
             }
-
-            // Disambiguation
-            if (pieceChar != ' ') {
-                moveNotation += pieceChar;
-                if (movingPiece == PieceType::W_Knight || movingPiece == PieceType::B_Knight ||
-                    movingPiece == PieceType::W_Rook || movingPiece == PieceType::B_Rook) {
-                    if (gameRules.needsDisambiguation(selectedSquare.y, selectedSquare.x, row, col, movingPiece)) {
-                        bool sameFile = false;
-                        for (int r = 0; r < 8; ++r) {
-                            for (int c = 0; c < 8; ++c) {
-                                if (gameRules.grid[r][c] == movingPiece && (r != selectedSquare.y || c != selectedSquare.x)) {
-                                    if (gameRules.isMoveValid(r, c, row, col) && c == selectedSquare.x) sameFile = true;
-                                }
-                            }
-                        }
-                        if (sameFile) moveNotation += std::to_string(8 - selectedSquare.y);
-                        else moveNotation += (char)('a' + selectedSquare.x);
-                    }
-                }
-            }
-            else if (isCapture) moveNotation += (char)('a' + selectedSquare.x);
-
-            if (isCapture) moveNotation += "x";
-            moveNotation += (char)('a' + col);
-            moveNotation += std::to_string(8 - row);
-
             // ################################################################
             // execute move func call here 
 			executeMove(row, col, movingPiece, targetPiece, moveNotation, isCapture);
