@@ -75,4 +75,8 @@ private:
     void setupPieceSources();
     char getPieceChar(PieceType type);
     void applyMoveIndependently(const MoveRecord& record);
+
+    // functions breakdown
+	bool processPromotionClick(sf::Vector2i mousePos);
+
 };

@@ -263,9 +263,7 @@ void Board::draw(sf::RenderWindow& window) {
     window.draw(shortcutsText);
 }
 
-void Board::handleMouseClick(const sf::Vector2i mousePos) {
-    if (gameRules.gameOver) return;
-
+bool Board::processPromotionClick(sf::Vector2i mousePos) {
     // ---------------- PROMOTION MENU HANDLING -------------------------------
     if (isPromoting) {
         int rRow = isFlowFlipped ? (7 - promotionSquare.y) : promotionSquare.y;
@@ -309,15 +307,22 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
                     gameRules.checkGameEnd();
                     isPromoting = false;
                     promotionSquare = sf::Vector2i(-1, -1);
-					// for showing the latest PGN in console after promotion
+                    // for showing the latest PGN in console after promotion
                     exportPGN();
 
-                    return;
+                    return true;
                 }
             }
         }
-        return;
+        return true;
     }
+}
+
+void Board::handleMouseClick(const sf::Vector2i mousePos) {
+    if (gameRules.gameOver) return;
+
+    // Hande Promotion menu function here
+	if (processPromotionClick(mousePos)) return;
 
     // ------------- REGULAR MOVE HANDLING --------------
     int col = (mousePos.x - (int)offset) / (int)tileSize;
@@ -457,6 +462,8 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
         }
     }
 }
+
+
 
 void Board::undoMove() {
     if (gameRules.moveHistory.empty()) return;
