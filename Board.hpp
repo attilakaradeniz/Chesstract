@@ -77,6 +77,11 @@ private:
     void applyMoveIndependently(const MoveRecord& record);
 
     // functions breakdown
+    // promotion handling function
 	bool processPromotionClick(sf::Vector2i mousePos);
+
+    // process move function
+    void executeMove(int row, int col, PieceType movingPiece, PieceType targetPiece, std::string moveNotation, bool isCapture);
+
 
 };

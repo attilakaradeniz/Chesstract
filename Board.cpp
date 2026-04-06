@@ -318,6 +318,82 @@ bool Board::processPromotionClick(sf::Vector2i mousePos) {
     }
 }
 
+void Board::executeMove(int row, int col, PieceType movingPiece, PieceType targetPiece, std::string moveNotation, bool isCapture) {
+
+    // Create Move Record
+    MoveRecord record;
+    record.start = selectedSquare; record.end = sf::Vector2i(col, row);
+    record.movedPiece = movingPiece; record.capturedPiece = targetPiece;
+    record.isWhiteMove = gameRules.isWhite(movingPiece);
+    record.prevLastPawnDoubleMove = gameRules.lastPawnDoubleMove;
+    record.prevWhiteKingMoved = gameRules.whiteKingMoved; record.prevBlackKingMoved = gameRules.blackKingMoved;
+    record.prevWhiteRook0Moved = gameRules.whiteRook0Moved; record.prevWhiteRook7Moved = gameRules.whiteRook7Moved;
+    record.prevBlackRook0Moved = gameRules.blackRook0Moved; record.prevBlackRook7Moved = gameRules.blackRook7Moved;
+
+    // Check for Promotion
+    bool isPromotion = (movingPiece == PieceType::W_Pawn && row == 0) || (movingPiece == PieceType::B_Pawn && row == 7);
+    if (isPromotion) {
+        gameRules.grid[row][col] = movingPiece;
+        gameRules.grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
+        record.notation = moveNotation;
+        gameRules.pendingPromotionMove = record;
+        isPromoting = true; promotionSquare = sf::Vector2i(col, row);
+        selectedSquare = sf::Vector2i(-1, -1); validMoves.clear();
+        lastMoveStart = record.start; lastMoveEnd = record.end;
+        std::cout << "Game Paused: Waiting for promotion selection..." << std::endl;
+        return;
+    }
+
+    // Castling Logic
+    if ((movingPiece == PieceType::W_King || movingPiece == PieceType::B_King) && std::abs(col - selectedSquare.x) == 2) {
+        if (col == 6) { gameRules.grid[row][5] = gameRules.grid[row][7]; gameRules.grid[row][7] = PieceType::Empty; moveNotation = "O-O"; }
+        else { gameRules.grid[row][3] = gameRules.grid[row][0]; gameRules.grid[row][0] = PieceType::Empty; moveNotation = "O-O-O"; }
+    }
+
+    // Update Castling/Pawn Flags
+    if (movingPiece == PieceType::W_King) gameRules.whiteKingMoved = true;
+    if (movingPiece == PieceType::B_King) gameRules.blackKingMoved = true;
+    if (selectedSquare == sf::Vector2i(0, 0)) gameRules.blackRook0Moved = true;
+    if (selectedSquare == sf::Vector2i(7, 0)) gameRules.blackRook7Moved = true;
+    if (selectedSquare == sf::Vector2i(0, 7)) gameRules.whiteRook0Moved = true;
+    if (selectedSquare == sf::Vector2i(7, 7)) gameRules.whiteRook7Moved = true;
+    gameRules.lastPawnDoubleMove = ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && std::abs(row - selectedSquare.y) == 2) ? sf::Vector2i(col, row) : sf::Vector2i(-1, -1);
+
+    // Execute Move
+    gameRules.grid[row][col] = movingPiece;
+    gameRules.grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
+
+    // Check for Check/Mate
+    sf::Vector2i opponentKing = gameRules.findKing(!gameRules.isWhite(movingPiece));
+    bool isCheck = gameRules.isSquareAttacked(opponentKing.y, opponentKing.x, gameRules.isWhite(movingPiece));
+    if (isCheck) moveNotation += (!gameRules.hasLegalMoves(!gameRules.isWhite(movingPiece))) ? "#" : "+";
+    record.notation = moveNotation;
+
+    // Save to History
+    if (gameRules.currentMoveIndex < (int)gameRules.moveHistory.size() - 1) {
+        gameRules.moveHistory.erase(gameRules.moveHistory.begin() + (gameRules.currentMoveIndex + 1), gameRules.moveHistory.end());
+    }
+    gameRules.moveHistory.push_back(record);
+    gameRules.currentMoveIndex = (int)gameRules.moveHistory.size() - 1;
+
+    // UI feedback: Console, Sound, Highlights
+    std::cout << (gameRules.isWhite(movingPiece) ? "White moved: " : "Black moved: ") << moveNotation << std::endl;
+    if (isCheck || isCapture) captureSound.play();
+    else moveSound.play();
+
+    lastMoveStart = selectedSquare;
+    lastMoveEnd = sf::Vector2i(col, row);
+
+    // FINALIZE TURN (Switch side and clean up selection)
+    gameRules.whiteTurn = !gameRules.whiteTurn;
+    gameRules.checkGameEnd();
+    validMoves.clear();
+    selectedSquare = sf::Vector2i(-1, -1);
+    // for showing the latest PGN in console after every move
+    exportPGN();
+
+}
+
 void Board::handleMouseClick(const sf::Vector2i mousePos) {
     if (gameRules.gameOver) return;
 
@@ -371,77 +447,10 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             moveNotation += (char)('a' + col);
             moveNotation += std::to_string(8 - row);
 
-            // Create Move Record
-            MoveRecord record;
-            record.start = selectedSquare; record.end = sf::Vector2i(col, row);
-            record.movedPiece = movingPiece; record.capturedPiece = targetPiece;
-            record.isWhiteMove = gameRules.isWhite(movingPiece);
-            record.prevLastPawnDoubleMove = gameRules.lastPawnDoubleMove;
-            record.prevWhiteKingMoved = gameRules.whiteKingMoved; record.prevBlackKingMoved = gameRules.blackKingMoved;
-            record.prevWhiteRook0Moved = gameRules.whiteRook0Moved; record.prevWhiteRook7Moved = gameRules.whiteRook7Moved;
-            record.prevBlackRook0Moved = gameRules.blackRook0Moved; record.prevBlackRook7Moved = gameRules.blackRook7Moved;
-
-            // Check for Promotion
-            bool isPromotion = (movingPiece == PieceType::W_Pawn && row == 0) || (movingPiece == PieceType::B_Pawn && row == 7);
-            if (isPromotion) {
-                gameRules.grid[row][col] = movingPiece;
-                gameRules.grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
-                record.notation = moveNotation;
-                gameRules.pendingPromotionMove = record;
-                isPromoting = true; promotionSquare = sf::Vector2i(col, row);
-                selectedSquare = sf::Vector2i(-1, -1); validMoves.clear();
-                lastMoveStart = record.start; lastMoveEnd = record.end;
-                std::cout << "Game Paused: Waiting for promotion selection..." << std::endl;
-                return;
-            }
-
-            // Castling Logic
-            if ((movingPiece == PieceType::W_King || movingPiece == PieceType::B_King) && std::abs(col - selectedSquare.x) == 2) {
-                if (col == 6) { gameRules.grid[row][5] = gameRules.grid[row][7]; gameRules.grid[row][7] = PieceType::Empty; moveNotation = "O-O"; }
-                else { gameRules.grid[row][3] = gameRules.grid[row][0]; gameRules.grid[row][0] = PieceType::Empty; moveNotation = "O-O-O"; }
-            }
-
-            // Update Castling/Pawn Flags
-            if (movingPiece == PieceType::W_King) gameRules.whiteKingMoved = true;
-            if (movingPiece == PieceType::B_King) gameRules.blackKingMoved = true;
-            if (selectedSquare == sf::Vector2i(0, 0)) gameRules.blackRook0Moved = true;
-            if (selectedSquare == sf::Vector2i(7, 0)) gameRules.blackRook7Moved = true;
-            if (selectedSquare == sf::Vector2i(0, 7)) gameRules.whiteRook0Moved = true;
-            if (selectedSquare == sf::Vector2i(7, 7)) gameRules.whiteRook7Moved = true;
-            gameRules.lastPawnDoubleMove = ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && std::abs(row - selectedSquare.y) == 2) ? sf::Vector2i(col, row) : sf::Vector2i(-1, -1);
-
-            // Execute Move
-            gameRules.grid[row][col] = movingPiece;
-            gameRules.grid[selectedSquare.y][selectedSquare.x] = PieceType::Empty;
-
-            // Check for Check/Mate
-            sf::Vector2i opponentKing = gameRules.findKing(!gameRules.isWhite(movingPiece));
-            bool isCheck = gameRules.isSquareAttacked(opponentKing.y, opponentKing.x, gameRules.isWhite(movingPiece));
-            if (isCheck) moveNotation += (!gameRules.hasLegalMoves(!gameRules.isWhite(movingPiece))) ? "#" : "+";
-            record.notation = moveNotation;
-
-            // Save to History
-            if (gameRules.currentMoveIndex < (int)gameRules.moveHistory.size() - 1) {
-                gameRules.moveHistory.erase(gameRules.moveHistory.begin() + (gameRules.currentMoveIndex + 1), gameRules.moveHistory.end());
-            }
-            gameRules.moveHistory.push_back(record);
-            gameRules.currentMoveIndex = (int)gameRules.moveHistory.size() - 1;
-
-            // UI feedback: Console, Sound, Highlights
-            std::cout << (gameRules.isWhite(movingPiece) ? "White moved: " : "Black moved: ") << moveNotation << std::endl;
-            if (isCheck || isCapture) captureSound.play();
-            else moveSound.play();
-
-            lastMoveStart = selectedSquare;
-            lastMoveEnd = sf::Vector2i(col, row);
-
-            // FINALIZE TURN (Switch side and clean up selection)
-            gameRules.whiteTurn = !gameRules.whiteTurn;
-            gameRules.checkGameEnd();
-            validMoves.clear();
-            selectedSquare = sf::Vector2i(-1, -1);
-			// for showing the latest PGN in console after every move
-			exportPGN();
+            // ################################################################
+            // execute move func call here 
+			executeMove(row, col, movingPiece, targetPiece, moveNotation, isCapture);
+			// ################################################################
         }
         else {
             // Re-select if another piece of the same color is clicked
