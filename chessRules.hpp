@@ -26,7 +26,7 @@ struct MoveRecord {
     bool prevBlackRook0Moved;
     bool prevBlackRook7Moved;
 
-    // --- NEW: Remember what the pawn promoted to! ---
+    // pawn promotion state
     PieceType promotedTo = PieceType::Empty;
 };
 

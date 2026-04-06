@@ -34,6 +34,6 @@ The project follows a strict **Separation of Concerns** architecture:
 * [ ] **AI Opponent:** Implementation of a basic bot using Minimax with Alpha-Beta pruning.
 * [ ] **Network Play:** Basic socket programming to allow two players over a local network.
 
-## 🛠️ Built With
+## Built With
 * **C++20** (Modern C++ Standard)
 * **SFML 2.6+** (Simple and Fast Multimedia Library)
