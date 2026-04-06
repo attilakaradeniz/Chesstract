@@ -35,7 +35,7 @@ public:
     void handleMouseUp(sf::Vector2f mPos);
 
 private:
-    ChessRules gameRules; // The heart of the SOC - separation of concerns
+    ChessRules gameRules; 
 
     // SFML visual assets
     sf::Texture piecesTexture;
