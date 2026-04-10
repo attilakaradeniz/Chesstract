@@ -458,10 +458,10 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             if (isCapture && targetPiece == PieceType::Empty && (movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn)) {
                 gameRules.grid[selectedSquare.y][col] = PieceType::Empty;
             }
-            // ################################################################
+
             // execute move func call here 
 			executeMove(row, col, movingPiece, targetPiece, moveNotation, isCapture);
-			// ################################################################
+
         }
         else {
             // Re-select if another piece of the same color is clicked
