@@ -1,4 +1,5 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
+#include "sqlite3.h"
 #include "Board.hpp"
 #include <iostream>
 #include <cmath>
@@ -14,6 +15,7 @@
 Board::Board() :
     tileSize(100.0f),
     offset(50.0f),
+    db("chess_collection.db"),
     scrollOffset(0.0f),
     isDragging(false),
     draggedPieceSource(-1, -1),
@@ -23,6 +25,7 @@ Board::Board() :
 {
     loadAssets();
     setupPieceSources();
+    std::cout << "SQLite Version: " << sqlite3_libversion() << std::endl;
 }
 
 void Board::loadAssets() {
@@ -568,7 +571,12 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
 	else if (key == sf::Keyboard::Down) goToMove((int)gameRules.moveHistory.size() - 1);
     else if (key == sf::Keyboard::U) undoMove();
     else if (key == sf::Keyboard::P) exportPGN();
-    else if (key == sf::Keyboard::S) savePGNToFile();
+    else if (key == sf::Keyboard::S) { 
+        savePGNToFile();
+        std::string white = "Player 1";
+		std::string black = "Player 2";
+        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String plaeholder");
+    }
     else if (key == sf::Keyboard::F) flipBoard();
     else if (key == sf::Keyboard::C) toggleCoordinates();
 }

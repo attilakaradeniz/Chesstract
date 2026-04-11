@@ -3,5 +3,6 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Solution Items/" />
   <Project Path="Chesstract.vcxproj" Id="c7ff22a5-846e-4358-9029-b5da09124028" />
 </Solution>

@@ -24,12 +24,24 @@
     <ClCompile Include="chessRules.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ChessRules.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameDatabase.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

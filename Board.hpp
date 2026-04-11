@@ -4,7 +4,8 @@
 #include <map>
 #include <vector>
 //#include <string>
-#include "ChessRules.hpp" // Crucial link to the logic class
+#include "ChessRules.hpp" 
+#include "GameDatabase.hpp" 
 
 struct PieceSource {
     int col;
@@ -36,6 +37,7 @@ public:
 
 private:
     ChessRules gameRules; 
+    GameDatabase db;
 
     // SFML visual assets
     sf::Texture piecesTexture;
