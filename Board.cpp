@@ -572,10 +572,17 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
     else if (key == sf::Keyboard::U) undoMove();
     else if (key == sf::Keyboard::P) exportPGN();
     else if (key == sf::Keyboard::S) { 
+
+        // new full formatted pgn form string
+		std::string fullPgn = getFullPGNString();
+
         savePGNToFile();
-        std::string white = "Player 1";
-		std::string black = "Player 2";
-        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String plaeholder");
+  //      std::string white = "Player 1";
+		//std::string black = "Player 2";
+		std::string white = "White Player";
+		std::string black = "Black Player";
+//        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String placeholder");
+        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, fullPgn);
     }
     else if (key == sf::Keyboard::F) flipBoard();
     else if (key == sf::Keyboard::C) toggleCoordinates();
@@ -622,34 +629,82 @@ void Board::exportPGN() {
 
 void Board::savePGNToFile() {
     if (gameRules.moveHistory.empty()) return;
+
     std::string filename = "";
+
 #ifdef _WIN32
-    OPENFILENAMEA ofn; CHAR szFile[260] = { 0 };
-    time_t t = time(0); tm* ltm = localtime(&t);
+    OPENFILENAMEA ofn;
+    CHAR szFile[260] = { 0 };
+    time_t t = time(0);
+    tm* ltm = localtime(&t);
+
     strftime(szFile, sizeof(szFile), "game_%Y%m%d_%H%M%S.pgn", ltm);
-    ZeroMemory(&ofn, sizeof(ofn)); ofn.lStructSize = sizeof(ofn);
-    ofn.lpstrFile = szFile; ofn.nMaxFile = sizeof(szFile);
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
     ofn.lpstrFilter = "PGN Files (*.pgn)\0*.pgn\0All Files (*.*)\0*.*\0";
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT; ofn.lpstrDefExt = "pgn";
-    if (GetSaveFileNameA(&ofn) == TRUE) filename = ofn.lpstrFile;
-    else return;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+    ofn.lpstrDefExt = "pgn";
+
+    if (GetSaveFileNameA(&ofn) == TRUE) {
+        filename = ofn.lpstrFile;
+    }
+    else {
+        return;
+    }
 #else
-    time_t t = time(0); tm* ltm = localtime(&t); char buf[64];
-    strftime(buf, sizeof(buf), "game_%Y%m%d_%H%M%S.pgn", ltm); filename = buf;
+    time_t t = time(0);
+    tm* ltm = localtime(&t);
+    char buf[64];
+    strftime(buf, sizeof(buf), "game_%Y%m%d_%H%M%S.pgn", ltm);
+    filename = buf;
 #endif
+
     std::ofstream outFile(filename);
     if (outFile.is_open()) {
-        int moveNumber = 1;
-        for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
-            if (gameRules.moveHistory[i].isWhiteMove) outFile << moveNumber << ". " << gameRules.moveHistory[i].notation << " ";
-            else { outFile << gameRules.moveHistory[i].notation << " "; moveNumber++; }
-        }
-        std::string result = "*";
-        if (gameRules.gameOver) {
-            if (gameRules.resultText.find("WHITE WINS") != std::string::npos) result = "1-0";
-            else if (gameRules.resultText.find("BLACK WINS") != std::string::npos) result = "0-1";
-            else if (gameRules.resultText.find("DRAW") != std::string::npos) result = "1/2-1/2";
-        }
-        outFile << result; outFile.close();
+        // Use the centralized helper function to get the full formatted PGN
+        // This ensures the file contains headers (Event, Site, Date, etc.) 
+        // as well as the move sequence and result.
+        outFile << getFullPGNString();
+
+        outFile.close();
+        std::cout << "PGN exported to file successfully." << std::endl;
     }
+}
+
+std::string Board::getFullPGNString() {
+    if (gameRules.moveHistory.empty()) return "";
+
+    std::string p = "";
+    p += "[Event \"Casual Game\"]\n";
+    p += "[Site \"Chesstracted\"]\n";
+
+    // Tarih kısmı (Karmaşadan kaçınmak için şimdilik manuel sabit veya basit tutalım)
+    p += "[Date \"2026.04.16\"]\n";
+    p += "[White \"Player 1\"]\n";
+    p += "[Black \"Player 2\"]\n";
+
+    std::string res = "*";
+    if (gameRules.gameOver) {
+        if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
+        else if (gameRules.resultText.find("BLACK WINS") != std::string::npos) res = "0-1";
+        else if (gameRules.resultText.find("DRAW") != std::string::npos) res = "1/2-1/2";
+    }
+    p += "[Result \"" + res + "\"]\n\n";
+
+    int moveNum = 1;
+    for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
+        if (gameRules.moveHistory[i].isWhiteMove) {
+            p += std::to_string(moveNum) + ". " + gameRules.moveHistory[i].notation + " ";
+        }
+        else {
+            p += gameRules.moveHistory[i].notation + " ";
+            moveNum++;
+        }
+    }
+    p += res + "\n";
+
+    return p;
 }

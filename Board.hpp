@@ -25,6 +25,7 @@ public:
     void handleKeyPress(sf::Keyboard::Key key);
 
     void exportPGN();
+//    std::string exportPGN();
     void flipBoard();
     void toggleCoordinates();
     void calculateValidMoves(int startRow, int startCol);
@@ -87,5 +88,8 @@ private:
 
 	// build notation function
     std::string buildNotation(sf::Vector2i start, sf::Vector2i end, PieceType movingPiece, PieceType targetPiece);
+
+    // full pgn
+    std::string getFullPGNString();
 
 };
