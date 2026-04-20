@@ -271,13 +271,14 @@ void Board::draw(sf::RenderWindow& window) {
 }
 
 bool Board::processPromotionClick(sf::Vector2i mousePos) {
-    // ---------------- PROMOTION MENU HANDLING -------------------------------
+    // PROMOTION MENU HANDLING 
     if (isPromoting) {
         int rRow = isFlowFlipped ? (7 - promotionSquare.y) : promotionSquare.y;
         int rCol = isFlowFlipped ? (7 - promotionSquare.x) : promotionSquare.x;
         float startX = rCol * tileSize + offset;
         float startY = rRow * tileSize + offset;
         int drawDirection = (rRow < 4) ? 1 : -1;
+		return true; // to prevent any other click processing while promotion menu is active
 
         if (mousePos.x >= startX && mousePos.x <= startX + tileSize) {
             for (int i = 0; i < 4; ++i) {
@@ -323,6 +324,7 @@ bool Board::processPromotionClick(sf::Vector2i mousePos) {
         }
         return true;
     }
+	return false;
 }
 
 void Board::executeMove(int row, int col, PieceType movingPiece, PieceType targetPiece, std::string moveNotation, bool isCapture) {
