@@ -17,6 +17,8 @@ The project follows a strict **Separation of Concerns** architecture:
 * **Navigation System:** Travel through time! Use arrow keys to navigate move history or `Undo` to revert mistakes.
 * **Promotion Engine:** Interactive pawn promotion menu (Queen, Rook, Bishop, Knight).
 * **Visual Feedback:** Dynamic move highlights, pulsating "Danger Zones" for Kings in check, and smooth drag-and-drop mechanics.
+* **SQLite Database Integration:** Persistent game storage. Save your matches to a local collection for future analysis.
+* **Clipboard Utility:** Instantly copy move sequences to your clipboard for quick analysis on external platforms like Lichess or Chess.com
 
 ## Shortcuts
 | Key | Action |
@@ -25,6 +27,7 @@ The project follows a strict **Separation of Concerns** architecture:
 | **Up / Down** | Jump to start / Jump to current move |
 | **U** | Undo last move |
 | **S** | Save PGN to file |
+| **K** | Copy raw move sequence to Clipboard |
 | **P** | Print PGN to console |
 | **F** | Flip the board (White/Black view) |
 | **C** | Toggle coordinates |
@@ -33,6 +36,8 @@ The project follows a strict **Separation of Concerns** architecture:
 * [x] **Architecture Refactoring:** Successfully decoupled Logic and UI into `ChessRules` and `Board`.
 * [ ] **AI Opponent:** Implementation of a basic bot using Minimax with Alpha-Beta pruning.
 * [ ] **Network Play:** Basic socket programming to allow two players over a local network.
+* [x] **Database Integration:** Local SQLite storage for game archiving and opening sequences.
+* [x] **Clipboard Features:** Quick-copy functionality for move notation.
 
 ## Built With
 * **C++20** (Modern C++ Standard)
