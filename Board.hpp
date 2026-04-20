@@ -91,5 +91,6 @@ private:
 
     // full pgn
     std::string getFullPGNString();
-
+    // moves to clipboard
+    void copyToClipboard(const std::string& text);
 };

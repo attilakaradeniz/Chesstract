@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <commdlg.h>
 #pragma comment(lib, "Comdlg32.lib")
+#pragma comment(lib, "User32.lib") // to use clipboard functions
 #endif
 
 Board::Board() :
@@ -587,6 +588,30 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
 //        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String placeholder");
         db.saveGame(white, black, "Result Pending", gameRules.moveHistory, fullPgn);
     }
+    else if (key == sf::Keyboard::K) {
+        // Extract moves in a format suitable for Lichess/Chess.com import
+        std::string rawMoves = "";
+        int moveNum = 1;
+        for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
+            if (gameRules.moveHistory[i].isWhiteMove) {
+                rawMoves += std::to_string(moveNum) + ". " + gameRules.moveHistory[i].notation + " ";
+            }
+            else {
+                rawMoves += gameRules.moveHistory[i].notation + " ";
+                moveNum++;
+            }
+        }
+        // Add the result at the end
+        std::string res = "*";
+        if (gameRules.gameOver) {
+            if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
+            else if (gameRules.resultText.find("BLACK WINS") != std::string::npos) res = "0-1";
+            else if (gameRules.resultText.find("DRAW") != std::string::npos) res = "1/2-1/2";
+        }
+        rawMoves += res;
+
+        copyToClipboard(rawMoves);
+    }
     else if (key == sf::Keyboard::F) flipBoard();
     else if (key == sf::Keyboard::C) toggleCoordinates();
 }
@@ -734,4 +759,32 @@ std::string Board::getFullPGNString() {
     p += res + "\n";
 
     return p;
+}
+
+void Board::copyToClipboard(const std::string& text) {
+#ifdef _WIN32
+    // Open the system clipboard
+    if (!OpenClipboard(nullptr)) return;
+
+    // Clear current contents
+    EmptyClipboard();
+
+    // Allocate global memory for the text
+    size_t size = text.size() + 1;
+    HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, size);
+    if (!hg) {
+        CloseClipboard();
+        return;
+    }
+
+    // Lock memory and copy the string
+    memcpy(GlobalLock(hg), text.c_str(), size);
+    GlobalUnlock(hg);
+
+    // Set clipboard data and close
+    SetClipboardData(CF_TEXT, hg);
+    CloseClipboard();
+
+    std::cout << ">>> Moves copied to clipboard!" << std::endl;
+#endif
 }
