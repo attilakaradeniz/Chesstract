@@ -4,7 +4,10 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 #include <ctime>
+#include <chrono>
+#include <iomanip>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -677,15 +680,36 @@ void Board::savePGNToFile() {
 std::string Board::getFullPGNString() {
     if (gameRules.moveHistory.empty()) return "";
 
+    // --- Get Current Local Time ---
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm ltm;
+
+    // Use safe version of localtime based on platform
+#ifdef _WIN32
+    localtime_s(&ltm, &now_c);
+#else
+    ltm = *std::localtime(&now_c);
+#endif
+
     std::string p = "";
     p += "[Event \"Casual Game\"]\n";
     p += "[Site \"Chesstracted\"]\n";
 
-    // Tarih kısmı (Karmaşadan kaçınmak için şimdilik manuel sabit veya basit tutalım)
-    p += "[Date \"2026.04.16\"]\n";
-    p += "[White \"Player 1\"]\n";
-    p += "[Black \"Player 2\"]\n";
+    // Format date as YYYY.MM.DD
+    std::stringstream dateStream;
+    dateStream << std::put_time(&ltm, "%Y.%m.%d");
+    p += "[Date \"" + dateStream.str() + "\"]\n";
 
+    // Add time header (optional but helps with the 2-hour offset check)
+    std::stringstream timeStream;
+    timeStream << std::put_time(&ltm, "%H:%M:%S");
+    p += "[Time \"" + timeStream.str() + "\"]\n";
+
+    p += "[White \"White Player\"]\n";
+    p += "[Black \"Black Player\"]\n";
+
+    // --- Determine Result ---
     std::string res = "*";
     if (gameRules.gameOver) {
         if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
@@ -694,6 +718,7 @@ std::string Board::getFullPGNString() {
     }
     p += "[Result \"" + res + "\"]\n\n";
 
+    // --- Build Move List ---
     int moveNum = 1;
     for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
         if (gameRules.moveHistory[i].isWhiteMove) {
@@ -704,6 +729,8 @@ std::string Board::getFullPGNString() {
             moveNum++;
         }
     }
+
+    // Append final result to the move list
     p += res + "\n";
 
     return p;
