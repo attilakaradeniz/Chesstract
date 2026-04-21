@@ -1,0 +1,4 @@
+# SQLite ignored at github
+sqlite3.c linguist-vendored
+sqlite3.h linguist-vendored
+
