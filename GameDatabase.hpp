@@ -27,9 +27,12 @@ public:
 	// opening sequence search
     std::vector<GameEntry> searchByOpening(const std::string& openingSeq);
 
+    // to load a game from db
+	GameEntry getGameById(int id);
+
 private:
     sqlite3* db;
     void createTable();
     std::string generateSequence(const std::vector<MoveRecord>& history, int depth = 12);
 
-};
+}; 
