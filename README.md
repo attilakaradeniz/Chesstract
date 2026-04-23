@@ -14,6 +14,7 @@ The project follows a strict **Separation of Concerns** architecture:
 ## Current Features (update: April 2026)
 * **Full Chess Logic:** Complete implementation of FIDE rules, including sophisticated move disambiguation (e.g., `R3h2`, `Ngf3`).
 * **PGN Generation & Export:** Real-time PGN logging in the console and native file export via Windows dialogs.
+* **Playback & PGN Parser:** Load saved games from the database and watch them play out automatically on the board. Powered by a robust custom PGN parser capable of handling complex notations, promotions, and disambiguation.
 * **Navigation System:** Travel through time! Use arrow keys to navigate move history or `Undo` to revert mistakes.
 * **Promotion Engine:** Interactive pawn promotion menu (Queen, Rook, Bishop, Knight).
 * **Visual Feedback:** Dynamic move highlights, pulsating "Danger Zones" for Kings in check, and smooth drag-and-drop mechanics.
@@ -27,6 +28,7 @@ The project follows a strict **Separation of Concerns** architecture:
 | **Up / Down** | Jump to start / Jump to current move |
 | **U** | Undo last move |
 | **S** | Save PGN to file |
+| **L** | Load latest game from DB and start cinematic playback |
 | **K** | Copy raw move sequence to Clipboard |
 | **P** | Print PGN to console |
 | **F** | Flip the board (White/Black view) |
@@ -34,6 +36,8 @@ The project follows a strict **Separation of Concerns** architecture:
 
 ## Roadmap (Updated)
 * [x] **Architecture Refactoring:** Successfully decoupled Logic and UI into `ChessRules` and `Board`.
+* [x] **Database Integration:** Local SQLite storage for game archiving and opening sequences.
+* [x] **Game Loading & Playback:** Custom PGN parser and automated playback system.
 * [ ] **AI Opponent:** Implementation of a basic bot using Minimax with Alpha-Beta pruning.
 * [ ] **Network Play:** Basic socket programming to allow two players over a local network.
 * [x] **Database Integration:** Local SQLite storage for game archiving and opening sequences.
