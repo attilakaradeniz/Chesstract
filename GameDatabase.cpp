@@ -78,7 +78,7 @@ std::vector<GameEntry> GameDatabase::searchByOpening(const std::string& openingS
     // Example: "e4|e5" becomes "e4|e5%" (matches anything starting with e4|e5)
     std::string querySeq = openingSeq + "%";
 
-    // Formulate the SQL query
+    // SQL query
     const char* sql = "SELECT ID, Date, White, Black, Result, Sequence, FullPGN FROM Games WHERE Sequence LIKE ?;";
     sqlite3_stmt* stmt;
 

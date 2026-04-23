@@ -574,20 +574,20 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
     if (key == sf::Keyboard::Left) goToMove(gameRules.currentMoveIndex - 1);
     else if (key == sf::Keyboard::Right) goToMove(gameRules.currentMoveIndex + 1);
     else if (key == sf::Keyboard::Up) goToMove(-1);
-	else if (key == sf::Keyboard::Down) goToMove((int)gameRules.moveHistory.size() - 1);
+    else if (key == sf::Keyboard::Down) goToMove((int)gameRules.moveHistory.size() - 1);
     else if (key == sf::Keyboard::U) undoMove();
     else if (key == sf::Keyboard::P) exportPGN();
-    else if (key == sf::Keyboard::S) { 
+    else if (key == sf::Keyboard::S) {
 
         // new full formatted pgn form string
-		std::string fullPgn = getFullPGNString();
+        std::string fullPgn = getFullPGNString();
 
         savePGNToFile();
-  //      std::string white = "Player 1";
-		//std::string black = "Player 2";
-		std::string white = "White Player";
-		std::string black = "Black Player";
-//        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String placeholder");
+        //      std::string white = "Player 1";
+              //std::string black = "Player 2";
+        std::string white = "White Player";
+        std::string black = "Black Player";
+        //        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String placeholder");
         db.saveGame(white, black, "Result Pending", gameRules.moveHistory, fullPgn);
     }
     else if (key == sf::Keyboard::K) {
@@ -614,54 +614,48 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
 
         copyToClipboard(rawMoves);
     }
-    else if (key == sf::Keyboard::F) flipBoard();
-    else if (key == sf::Keyboard::C) toggleCoordinates();
-	// test key L for a sql search example
-    /* else if (key == sf::Keyboard::L) {
-        // Search the database for games starting with "e4"
-        std::string searchParam = "e4";
-        std::cout << "\n--- SEARCHING DATABASE FOR: " << searchParam << " ---\n";
-
-        std::vector<GameEntry> foundGames = db.searchByOpening(searchParam);
-
-        if (foundGames.empty()) {
-            std::cout << "No games found matching this opening." << std::endl;
-        }
-        else {
-            std::cout << "Found " << foundGames.size() << " games!" << std::endl;
-            for (const auto& game : foundGames) {
-                std::cout << "ID: " << game.id
-                    << " | " << game.whitePlayer << " vs " << game.blackPlayer
-                    << " | Result: " << game.result
-                    << "\nSequence: " << game.notationSequence
-                    << "\n-----------------------" << std::endl;
-            }
-        }
-    } */
-
     else if (key == sf::Keyboard::L) {
+        // Search the database for games starting with "e4"
         std::string searchParam = "e4";
         std::vector<GameEntry> foundGames = db.searchByOpening(searchParam);
 
         if (!foundGames.empty()) {
-            int firstGameID = foundGames[0].id; // Grab the ID of the first found game
-            std::cout << "\n>>> Loading Game ID: " << firstGameID << " from database..." << std::endl;
+            // Get the ID of the LATEST game added to avoid old "placeholder" entries
+            int latestGameId = foundGames.back().id;
 
-            GameEntry gameToLoad = db.getGameById(firstGameID);
+            GameEntry gameToLoad = db.getGameById(latestGameId);
 
             if (gameToLoad.id != -1) {
-                std::cout << "Successfully fetched game: " << gameToLoad.whitePlayer << " vs " << gameToLoad.blackPlayer << std::endl;
-                std::cout << "Full PGN to be parsed:\n" << gameToLoad.fullPgn << std::endl;
+                std::cout << "\n>>> Loading Game ID: " << gameToLoad.id << " from database..." << std::endl;
+                std::cout << "White: " << gameToLoad.whitePlayer << " | Black: " << gameToLoad.blackPlayer << std::endl;
 
-                // Prepare the board for a new game
+                // 1. Prepare the board for a new game
                 gameRules.resetBoardToStart();
                 validMoves.clear();
                 selectedSquare = sf::Vector2i(-1, -1);
+                lastMoveStart = sf::Vector2i(-1, -1);
+                lastMoveEnd = sf::Vector2i(-1, -1);
 
-                // TODO: Parse gameToLoad.fullPgn and play the moves automatically!
+                // 2. Extract pure moves from the full PGN
+                std::vector<std::string> parsedMoves = extractMovesFromPGN(gameToLoad.fullPgn);
+
+                // 3. Play each move using the parser
+                std::cout << "Parsing and playing " << parsedMoves.size() << " moves..." << std::endl;
+                for (const std::string& moveStr : parsedMoves) {
+                    if (!playNotationMove(moveStr)) {
+                        std::cerr << "PGN Parser Error: Failed to execute move -> " << moveStr << std::endl;
+                        break;
+                    }
+                }
+                std::cout << ">>> Game loading complete!" << std::endl;
             }
         }
+        else {
+            std::cout << "No games found starting with e4. Please save a game first (S key)." << std::endl;
+        }
     }
+    else if (key == sf::Keyboard::F) flipBoard();
+    else if (key == sf::Keyboard::C) toggleCoordinates();
 }
 
 void Board::handleMouseDown(sf::Vector2f mPos) {
@@ -835,4 +829,151 @@ void Board::copyToClipboard(const std::string& text) {
 
     std::cout << ">>> Moves copied to clipboard!" << std::endl;
 #endif
+}
+
+#include <sstream> // En üste eklemeyi unutma (zaten varsa sorun yok)
+
+std::vector<std::string> Board::extractMovesFromPGN(const std::string& rawPgn) {
+    std::vector<std::string> pureMoves;
+    std::string cleanedStr = "";
+    bool inHeader = false;
+
+    // Step 1: Remove all headers (anything between '[' and ']')
+    for (char c : rawPgn) {
+        if (c == '[') inHeader = true;
+        if (!inHeader) cleanedStr += c;
+        if (c == ']') inHeader = false;
+    }
+
+    // Step 2: Tokenize the remaining string by spaces
+    std::stringstream ss(cleanedStr);
+    std::string token;
+
+    while (ss >> token) {
+        // Ignore move numbers (e.g., "1.", "12.")
+        if (token.find('.') != std::string::npos) continue;
+
+        // Ignore game results
+        if (token == "1-0" || token == "0-1" || token == "1/2-1/2" || token == "*") continue;
+
+        // If it passed the checks, it's a valid move notation!
+        pureMoves.push_back(token);
+    }
+
+    return pureMoves;
+}
+
+bool Board::playNotationMove(const std::string& move) {
+    if (move.empty()) return false;
+
+    std::string cleanMove = move;
+
+    // 1. Strip check/mate symbols (+, ++, #) safely
+    while (!cleanMove.empty() && (cleanMove.back() == '+' || cleanMove.back() == '#')) {
+        cleanMove.pop_back();
+    }
+
+    // 2. Handle Promotion (e.g., h8=Q)
+    PieceType promotedPiece = PieceType::Empty;
+    size_t eqPos = cleanMove.find('=');
+    if (eqPos != std::string::npos) {
+        char pChar = cleanMove[eqPos + 1];
+        if (pChar == 'Q') promotedPiece = gameRules.whiteTurn ? PieceType::W_Queen : PieceType::B_Queen;
+        else if (pChar == 'R') promotedPiece = gameRules.whiteTurn ? PieceType::W_Rook : PieceType::B_Rook;
+        else if (pChar == 'B') promotedPiece = gameRules.whiteTurn ? PieceType::W_Bishop : PieceType::B_Bishop;
+        else if (pChar == 'N') promotedPiece = gameRules.whiteTurn ? PieceType::W_Knight : PieceType::B_Knight;
+
+        // Remove the promotion suffix so coordinate extraction works seamlessly
+        cleanMove = cleanMove.substr(0, eqPos);
+    }
+
+    // 3. Handle Castling
+    if (cleanMove == "O-O" || cleanMove == "O-O-O") {
+        int row = gameRules.whiteTurn ? 7 : 0;
+        int targetCol = (cleanMove == "O-O") ? 6 : 2;
+        int startCol = 4;
+        selectedSquare = sf::Vector2i(startCol, row);
+        executeMove(row, targetCol, gameRules.grid[row][startCol], PieceType::Empty, move, false);
+        return true;
+    }
+
+    // 4. Strip 'x' (capture indicator) to make string length predictable
+    std::string noX = "";
+    for (char ch : cleanMove) if (ch != 'x') noX += ch;
+    cleanMove = noX;
+
+    // 5. Extract Target Coordinates
+    int targetRow = 8 - (cleanMove.back() - '0');
+    int targetCol = cleanMove[cleanMove.size() - 2] - 'a';
+
+    // 6. Identify Piece Type and Disambiguation (e.g. Rad1 -> Rook on a-file)
+    char firstChar = cleanMove[0];
+    bool isPawn = !std::isupper(firstChar);
+    PieceType movingType = PieceType::Empty;
+
+    char disFile = '\0';
+    char disRank = '\0';
+
+    if (isPawn) {
+        movingType = gameRules.whiteTurn ? PieceType::W_Pawn : PieceType::B_Pawn;
+        if (cleanMove.size() >= 3) { // e.g., exd4 -> ed4 -> size 3. File is 'e'.
+            disFile = cleanMove[0];
+        }
+    }
+    else {
+        if (firstChar == 'K') movingType = gameRules.whiteTurn ? PieceType::W_King : PieceType::B_King;
+        else if (firstChar == 'Q') movingType = gameRules.whiteTurn ? PieceType::W_Queen : PieceType::B_Queen;
+        else if (firstChar == 'R') movingType = gameRules.whiteTurn ? PieceType::W_Rook : PieceType::B_Rook;
+        else if (firstChar == 'B') movingType = gameRules.whiteTurn ? PieceType::W_Bishop : PieceType::B_Bishop;
+        else if (firstChar == 'N') movingType = gameRules.whiteTurn ? PieceType::W_Knight : PieceType::B_Knight;
+
+        // Disambiguation logic (e.g. Rad1 -> 'a' is at index 1)
+        if (cleanMove.size() >= 4) {
+            char d1 = cleanMove[1];
+            if (d1 >= 'a' && d1 <= 'h') disFile = d1;
+            else if (d1 >= '1' && d1 <= '8') disRank = d1;
+        }
+    }
+
+    // 7. Find the matching piece on the board
+    for (int r = 0; r < 8; ++r) {
+        for (int c = 0; c < 8; ++c) {
+            if (gameRules.grid[r][c] == movingType) {
+                // Apply Disambiguation filters
+                if (disFile != '\0' && c != (disFile - 'a')) continue;
+                if (disRank != '\0' && r != (8 - (disRank - '0'))) continue;
+
+                // Check legal move
+                if (gameRules.isMoveValid(r, c, targetRow, targetCol)) {
+                    selectedSquare = sf::Vector2i(c, r);
+                    PieceType targetPiece = gameRules.grid[targetRow][targetCol];
+                    bool isCapture = (targetPiece != PieceType::Empty) || (isPawn && c != targetCol);
+
+                    // Execute basic move logic
+                    executeMove(targetRow, targetCol, movingType, targetPiece, move, isCapture);
+
+                    // 8. Auto-resolve Promotion bypassing the UI pause!
+                    if (isPromoting && promotedPiece != PieceType::Empty) {
+                        gameRules.grid[targetRow][targetCol] = promotedPiece;
+                        gameRules.pendingPromotionMove.notation = move; // Keep full notation e.g., h8=Q#
+                        gameRules.pendingPromotionMove.promotedTo = promotedPiece;
+
+                        // Insert into history
+                        if (gameRules.currentMoveIndex < (int)gameRules.moveHistory.size() - 1) {
+                            gameRules.moveHistory.erase(gameRules.moveHistory.begin() + (gameRules.currentMoveIndex + 1), gameRules.moveHistory.end());
+                        }
+                        gameRules.moveHistory.push_back(gameRules.pendingPromotionMove);
+                        gameRules.currentMoveIndex = (int)gameRules.moveHistory.size() - 1;
+
+                        gameRules.whiteTurn = !gameRules.whiteTurn;
+                        gameRules.checkGameEnd();
+                        isPromoting = false;
+                        promotionSquare = sf::Vector2i(-1, -1);
+                    }
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }

@@ -93,4 +93,9 @@ private:
     std::string getFullPGNString();
     // moves to clipboard
     void copyToClipboard(const std::string& text);
+    //helper func to extract the pure moves
+    std::vector<std::string> extractMovesFromPGN(const std::string& rawPgn);
+
+    bool playNotationMove(const std::string& move);
+
 };
