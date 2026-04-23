@@ -278,7 +278,7 @@ bool Board::processPromotionClick(sf::Vector2i mousePos) {
         float startX = rCol * tileSize + offset;
         float startY = rRow * tileSize + offset;
         int drawDirection = (rRow < 4) ? 1 : -1;
-		return true; // to prevent any other click processing while promotion menu is active
+		//return true; // to prevent any other click processing while promotion menu is active
 
         if (mousePos.x >= startX && mousePos.x <= startX + tileSize) {
             for (int i = 0; i < 4; ++i) {
