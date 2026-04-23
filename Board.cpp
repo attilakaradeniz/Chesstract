@@ -616,6 +616,52 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
     }
     else if (key == sf::Keyboard::F) flipBoard();
     else if (key == sf::Keyboard::C) toggleCoordinates();
+	// test key L for a sql search example
+    /* else if (key == sf::Keyboard::L) {
+        // Search the database for games starting with "e4"
+        std::string searchParam = "e4";
+        std::cout << "\n--- SEARCHING DATABASE FOR: " << searchParam << " ---\n";
+
+        std::vector<GameEntry> foundGames = db.searchByOpening(searchParam);
+
+        if (foundGames.empty()) {
+            std::cout << "No games found matching this opening." << std::endl;
+        }
+        else {
+            std::cout << "Found " << foundGames.size() << " games!" << std::endl;
+            for (const auto& game : foundGames) {
+                std::cout << "ID: " << game.id
+                    << " | " << game.whitePlayer << " vs " << game.blackPlayer
+                    << " | Result: " << game.result
+                    << "\nSequence: " << game.notationSequence
+                    << "\n-----------------------" << std::endl;
+            }
+        }
+    } */
+
+    else if (key == sf::Keyboard::L) {
+        std::string searchParam = "e4";
+        std::vector<GameEntry> foundGames = db.searchByOpening(searchParam);
+
+        if (!foundGames.empty()) {
+            int firstGameID = foundGames[0].id; // Grab the ID of the first found game
+            std::cout << "\n>>> Loading Game ID: " << firstGameID << " from database..." << std::endl;
+
+            GameEntry gameToLoad = db.getGameById(firstGameID);
+
+            if (gameToLoad.id != -1) {
+                std::cout << "Successfully fetched game: " << gameToLoad.whitePlayer << " vs " << gameToLoad.blackPlayer << std::endl;
+                std::cout << "Full PGN to be parsed:\n" << gameToLoad.fullPgn << std::endl;
+
+                // Prepare the board for a new game
+                gameRules.resetBoardToStart();
+                validMoves.clear();
+                selectedSquare = sf::Vector2i(-1, -1);
+
+                // TODO: Parse gameToLoad.fullPgn and play the moves automatically!
+            }
+        }
+    }
 }
 
 void Board::handleMouseDown(sf::Vector2f mPos) {
