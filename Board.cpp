@@ -74,6 +74,25 @@ void Board::setupPieceSources() {
 }
 
 void Board::draw(sf::RenderWindow& window) {
+    // --- AUTO-PLAYBACK LOGIC ---
+    if (isPlayingBack) {
+        if (playbackIndex < playbackMoves.size()) {
+            // 0.4f = Hamleler arası bekleme süresi (0.4 saniye). İstediğin gibi hızlandırıp yavaşlatabilirsin.
+            if (playbackClock.getElapsedTime().asSeconds() > 0.4f) {
+                if (!playNotationMove(playbackMoves[playbackIndex])) {
+                    std::cerr << "Playback Error at move: " << playbackMoves[playbackIndex] << std::endl;
+                    isPlayingBack = false; // Stop on error
+                }
+                playbackIndex++;
+                playbackClock.restart();
+            }
+        }
+        else {
+            isPlayingBack = false; // Finished!
+            std::cout << ">>> Playback complete!" << std::endl;
+        }
+    }
+    // --- END AUTO-PLAYBACK LOGIC ---
     const int sourceSize = 45;
     const float scale = tileSize / (float)sourceSize;
     pieceSprite.setScale(scale, scale);
@@ -636,17 +655,14 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
                 lastMoveStart = sf::Vector2i(-1, -1);
                 lastMoveEnd = sf::Vector2i(-1, -1);
 
-                // 2. Extract pure moves from the full PGN
-                std::vector<std::string> parsedMoves = extractMovesFromPGN(gameToLoad.fullPgn);
+                // Start the cinematic playback!
+                playbackMoves = extractMovesFromPGN(gameToLoad.fullPgn);
+                playbackIndex = 0;
+                isPlayingBack = true;
+                playbackClock.restart(); // Start the timer
 
-                // 3. Play each move using the parser
-                std::cout << "Parsing and playing " << parsedMoves.size() << " moves..." << std::endl;
-                for (const std::string& moveStr : parsedMoves) {
-                    if (!playNotationMove(moveStr)) {
-                        std::cerr << "PGN Parser Error: Failed to execute move -> " << moveStr << std::endl;
-                        break;
-                    }
-                }
+                std::cout << "Starting playback of " << playbackMoves.size() << " moves..." << std::endl;
+
                 std::cout << ">>> Game loading complete!" << std::endl;
             }
         }

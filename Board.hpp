@@ -98,4 +98,10 @@ private:
 
     bool playNotationMove(const std::string& move);
 
+    // Playback variables
+    std::vector<std::string> playbackMoves;
+    size_t playbackIndex = 0;
+    bool isPlayingBack = false;
+    sf::Clock playbackClock;
+
 };
