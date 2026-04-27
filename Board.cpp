@@ -15,6 +15,7 @@
 #pragma comment(lib, "Comdlg32.lib")
 #pragma comment(lib, "User32.lib") // to use clipboard functions
 #endif
+#include <string.h>
 
 Board::Board() :
     tileSize(100.0f),
@@ -74,10 +75,10 @@ void Board::setupPieceSources() {
 }
 
 void Board::draw(sf::RenderWindow& window) {
-    // --- AUTO-PLAYBACK LOGIC ---
+	// auto playback logic
     if (isPlayingBack) {
         if (playbackIndex < playbackMoves.size()) {
-            // 0.4f = Hamleler arası bekleme süresi (0.4 saniye). İstediğin gibi hızlandırıp yavaşlatabilirsin.
+            // 0.2f = Hamleler arası bekleme süresi (0.4 saniye)
             if (playbackClock.getElapsedTime().asSeconds() > 0.4f) {
                 if (!playNotationMove(playbackMoves[playbackIndex])) {
                     std::cerr << "Playback Error at move: " << playbackMoves[playbackIndex] << std::endl;
@@ -88,11 +89,11 @@ void Board::draw(sf::RenderWindow& window) {
             }
         }
         else {
-            isPlayingBack = false; // Finished!
+            isPlayingBack = false; // playback finished!
             std::cout << ">>> Playback complete!" << std::endl;
         }
     }
-    // --- END AUTO-PLAYBACK LOGIC ---
+	// end auto playback logic
     const int sourceSize = 45;
     const float scale = tileSize / (float)sourceSize;
     pieceSprite.setScale(scale, scale);
@@ -290,7 +291,7 @@ void Board::draw(sf::RenderWindow& window) {
 }
 
 bool Board::processPromotionClick(sf::Vector2i mousePos) {
-    // PROMOTION MENU HANDLING 
+    // promoiton menu handling 
     if (isPromoting) {
         int rRow = isFlowFlipped ? (7 - promotionSquare.y) : promotionSquare.y;
         int rCol = isFlowFlipped ? (7 - promotionSquare.x) : promotionSquare.x;
@@ -412,7 +413,7 @@ void Board::executeMove(int row, int col, PieceType movingPiece, PieceType targe
     lastMoveStart = selectedSquare;
     lastMoveEnd = sf::Vector2i(col, row);
 
-    // FINALIZE TURN (Switch side and clean up selection)
+    // finalize (Switch side and clean up selection)
     gameRules.whiteTurn = !gameRules.whiteTurn;
     gameRules.checkGameEnd();
     validMoves.clear();
@@ -465,7 +466,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
     // Hande Promotion menu function here
 	if (processPromotionClick(mousePos)) return;
 
-    // ------------- REGULAR MOVE HANDLING --------------
+    // regular move handling
     int col = (mousePos.x - (int)offset) / (int)tileSize;
     int row = (mousePos.y - (int)offset) / (int)tileSize;
     if (isFlowFlipped) { col = 7 - col; row = 7 - row; }
@@ -482,7 +483,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
             bool isCapture = (targetPiece != PieceType::Empty) ||
                 ((movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn) && col != selectedSquare.x);
 
-            // If it's en-passant, clear the pawn from the grid manually before executeMove
+            // if it's en-passant, clear the pawn from the grid manually before executeMove
             if (isCapture && targetPiece == PieceType::Empty && (movingPiece == PieceType::W_Pawn || movingPiece == PieceType::B_Pawn)) {
                 gameRules.grid[selectedSquare.y][col] = PieceType::Empty;
             }
@@ -492,7 +493,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
 
         }
         else {
-            // Re-select if another piece of the same color is clicked
+            // reselect if another piece of the same color is clicked
             PieceType clickedPiece = gameRules.grid[row][col];
             if (clickedPiece != PieceType::Empty && gameRules.isWhite(clickedPiece) == gameRules.whiteTurn) {
                 selectedSquare = sf::Vector2i(col, row); calculateValidMoves(row, col);
@@ -503,7 +504,7 @@ void Board::handleMouseClick(const sf::Vector2i mousePos) {
         }
     }
     else {
-        // Initial Selection
+        // initial selection
         PieceType clickedPiece = gameRules.grid[row][col];
         if (clickedPiece != PieceType::Empty && gameRules.isWhite(clickedPiece) == gameRules.whiteTurn) {
             selectedSquare = sf::Vector2i(col, row); calculateValidMoves(row, col);
@@ -610,7 +611,7 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
         db.saveGame(white, black, "Result Pending", gameRules.moveHistory, fullPgn);
     }
     else if (key == sf::Keyboard::K) {
-        // Extract moves in a format suitable for Lichess/Chess.com import
+        // extract moves in a format suitable for Lichess/Chess.com import
         std::string rawMoves = "";
         int moveNum = 1;
         for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
@@ -622,7 +623,7 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
                 moveNum++;
             }
         }
-        // Add the result at the end
+        // add the result at the end
         std::string res = "*";
         if (gameRules.gameOver) {
             if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
@@ -634,12 +635,12 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
         copyToClipboard(rawMoves);
     }
     else if (key == sf::Keyboard::L) {
-        // Search the database for games starting with "e4"
+        // search the database for games starting with "e4"
         std::string searchParam = "e4";
         std::vector<GameEntry> foundGames = db.searchByOpening(searchParam);
 
         if (!foundGames.empty()) {
-            // Get the ID of the LATEST game added to avoid old "placeholder" entries
+            // get the ID of the LATEST game added 
             int latestGameId = foundGames.back().id;
 
             GameEntry gameToLoad = db.getGameById(latestGameId);
@@ -648,14 +649,14 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
                 std::cout << "\n>>> Loading Game ID: " << gameToLoad.id << " from database..." << std::endl;
                 std::cout << "White: " << gameToLoad.whitePlayer << " | Black: " << gameToLoad.blackPlayer << std::endl;
 
-                // 1. Prepare the board for a new game
+                // 1. prepare the board for a new game
                 gameRules.resetBoardToStart();
                 validMoves.clear();
                 selectedSquare = sf::Vector2i(-1, -1);
                 lastMoveStart = sf::Vector2i(-1, -1);
                 lastMoveEnd = sf::Vector2i(-1, -1);
 
-                // Start the cinematic playback!
+                // start the cinematic playback!
                 playbackMoves = extractMovesFromPGN(gameToLoad.fullPgn);
                 playbackIndex = 0;
                 isPlayingBack = true;
@@ -763,12 +764,12 @@ void Board::savePGNToFile() {
 std::string Board::getFullPGNString() {
     if (gameRules.moveHistory.empty()) return "";
 
-    // --- Get Current Local Time ---
+    // get current local time 
     auto now = std::chrono::system_clock::now();
     std::time_t now_c = std::chrono::system_clock::to_time_t(now);
     std::tm ltm;
 
-    // Use safe version of localtime based on platform
+    // use safe version of localtime based on platform
 #ifdef _WIN32
     localtime_s(&ltm, &now_c);
 #else
@@ -779,12 +780,12 @@ std::string Board::getFullPGNString() {
     p += "[Event \"Casual Game\"]\n";
     p += "[Site \"Chesstracted\"]\n";
 
-    // Format date as YYYY.MM.DD
+    // format date as YYYY.MM.DD
     std::stringstream dateStream;
     dateStream << std::put_time(&ltm, "%Y.%m.%d");
     p += "[Date \"" + dateStream.str() + "\"]\n";
 
-    // Add time header (optional but helps with the 2-hour offset check)
+    // add time header (optional but helps with the 2-hour offset check)
     std::stringstream timeStream;
     timeStream << std::put_time(&ltm, "%H:%M:%S");
     p += "[Time \"" + timeStream.str() + "\"]\n";
@@ -792,7 +793,7 @@ std::string Board::getFullPGNString() {
     p += "[White \"White Player\"]\n";
     p += "[Black \"Black Player\"]\n";
 
-    // --- Determine Result ---
+    // determine result
     std::string res = "*";
     if (gameRules.gameOver) {
         if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
@@ -801,7 +802,7 @@ std::string Board::getFullPGNString() {
     }
     p += "[Result \"" + res + "\"]\n\n";
 
-    // --- Build Move List ---
+    // build move list
     int moveNum = 1;
     for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
         if (gameRules.moveHistory[i].isWhiteMove) {
@@ -813,7 +814,7 @@ std::string Board::getFullPGNString() {
         }
     }
 
-    // Append final result to the move list
+    //aAppend final result to the move list
     p += res + "\n";
 
     return p;
@@ -821,13 +822,13 @@ std::string Board::getFullPGNString() {
 
 void Board::copyToClipboard(const std::string& text) {
 #ifdef _WIN32
-    // Open the system clipboard
+    // open the system clipboard
     if (!OpenClipboard(nullptr)) return;
 
-    // Clear current contents
+    // clear current contents
     EmptyClipboard();
 
-    // Allocate global memory for the text
+    // allocate global memory for the text
     size_t size = text.size() + 1;
     HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, size);
     if (!hg) {
@@ -835,7 +836,7 @@ void Board::copyToClipboard(const std::string& text) {
         return;
     }
 
-    // Lock memory and copy the string
+    // lock memory and copy the string
     memcpy(GlobalLock(hg), text.c_str(), size);
     GlobalUnlock(hg);
 
@@ -846,8 +847,6 @@ void Board::copyToClipboard(const std::string& text) {
     std::cout << ">>> Moves copied to clipboard!" << std::endl;
 #endif
 }
-
-#include <sstream> // En üste eklemeyi unutma (zaten varsa sorun yok)
 
 std::vector<std::string> Board::extractMovesFromPGN(const std::string& rawPgn) {
     std::vector<std::string> pureMoves;
