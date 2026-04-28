@@ -18,7 +18,9 @@
 #include <string.h>
 
 Board::Board() :
-    tileSize(100.0f),
+    //tileSize(100.0f),
+    tileSize(90.0f),
+    //tileSize(60.0f),
     offset(50.0f),
     db("chess_collection.db"),
     scrollOffset(0.0f),
@@ -283,7 +285,10 @@ void Board::draw(sf::RenderWindow& window) {
         }
     }
 
-    std::string shortcuts = "Shortcuts: [Left/Right] Navigate History | [U] Undo | [S] Save PGN | [F] Flip Board | [C] Toggle Coordinates";
+
+    //std::string shortcuts = "Shortcuts: [←→] Navigate Moves | [U] Undo | [S] Save PGN | [F] Flip Board | [C] Toggle Coordinates | [K] Clipboard";
+    sf::String shortcuts = L"Shortcuts: [\u2190\u2192] Navigate Moves | [U] Undo | [S] Save PGN | [F] Flip Board | [C] Toggle Coordinates | [K] Clipboard";
+    //sf::Text shortcutsText(shortcuts, font, 14);
     sf::Text shortcutsText(shortcuts, font, 14);
     shortcutsText.setFillColor(sf::Color(150, 150, 150));
     shortcutsText.setPosition(offset, 8 * tileSize + offset + 15);
