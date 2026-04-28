@@ -8,6 +8,7 @@
 #include <ctime>
 #include <chrono>
 #include <iomanip>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -604,16 +605,26 @@ void Board::handleKeyPress(sf::Keyboard::Key key) {
     else if (key == sf::Keyboard::P) exportPGN();
     else if (key == sf::Keyboard::S) {
 
-        // new full formatted pgn form string
-        std::string fullPgn = getFullPGNString();
+        MatchDetails currentMatch;
+        currentMatch.white = "White Player";
+        currentMatch.black = "Black Player";
+        currentMatch.eventName = "Casual Game";
+        currentMatch.comment = "";
 
-        savePGNToFile();
+
+
+        // new full formatted pgn form string
+        std::string fullPgn = getFullPGNString(currentMatch);
+
+        savePGNToFile(currentMatch);
         //      std::string white = "Player 1";
               //std::string black = "Player 2";
-        std::string white = "White Player";
-        std::string black = "Black Player";
+        //std::string white = "White Player";
+        //std::string black = "Black Player";
         //        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, "Full PGN String placeholder");
-        db.saveGame(white, black, "Result Pending", gameRules.moveHistory, fullPgn);
+        //db.saveGame(white, black, "Result Pending", gameRules.moveHistory, fullPgn);
+        db.saveGame(currentMatch.white, currentMatch.black, "Result Pending", gameRules.moveHistory, fullPgn);
+		std::cout << "Game saved to collection!" << std::endl;
     }
     else if (key == sf::Keyboard::K) {
         // extract moves in a format suitable for Lichess/Chess.com import
@@ -719,10 +730,63 @@ void Board::exportPGN() {
     std::cout << "\n--- PGN OUTPUT ---\n" << pgn << "\n------------------\n" << std::endl;
 }
 
-void Board::savePGNToFile() {
+//void Board::savePGNToFile() {
+//    if (gameRules.moveHistory.empty()) return;
+//
+//    std::string filename = "";
+//
+//#ifdef _WIN32
+//    OPENFILENAMEA ofn;
+//    CHAR szFile[260] = { 0 };
+//    time_t t = time(0);
+//    tm* ltm = localtime(&t);
+//
+//    strftime(szFile, sizeof(szFile), "game_%Y%m%d_%H%M%S.pgn", ltm);
+//
+//    ZeroMemory(&ofn, sizeof(ofn));
+//    ofn.lStructSize = sizeof(ofn);
+//    ofn.lpstrFile = szFile;
+//    ofn.nMaxFile = sizeof(szFile);
+//    ofn.lpstrFilter = "PGN Files (*.pgn)\0*.pgn\0All Files (*.*)\0*.*\0";
+//    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+//    ofn.lpstrDefExt = "pgn";
+//
+//    if (GetSaveFileNameA(&ofn) == TRUE) {
+//        filename = ofn.lpstrFile;
+//    }
+//    else {
+//        return;
+//    }
+//#else
+//    time_t t = time(0);
+//    tm* ltm = localtime(&t);
+//    char buf[64];
+//    strftime(buf, sizeof(buf), "game_%Y%m%d_%H%M%S.pgn", ltm);
+//    filename = buf;
+//#endif
+//
+//    std::ofstream outFile(filename);
+//    if (outFile.is_open()) {
+//        // Use the centralized helper function to get the full formatted PGN
+//        // This ensures the file contains headers (Event, Site, Date, etc.) 
+//        // as well as the move sequence and result.
+//        outFile << getFullPGNString();
+//
+//        outFile.close();
+//        std::cout << "PGN exported to file successfully." << std::endl;
+//    }
+//}
+void Board::savePGNToFile(const MatchDetails& details) {
     if (gameRules.moveHistory.empty()) return;
-
     std::string filename = "";
+
+	// Prefix: blank spaces in player names replacing with underscores
+    std::string safeWhite = details.white;
+    std::string safeBlack = details.black;
+    std::replace(safeWhite.begin(), safeWhite.end(), ' ', '_');
+    std::replace(safeBlack.begin(), safeBlack.end(), ' ', '_');
+
+    std::string prefix = safeWhite + "_vs_" + safeBlack + "_";
 
 #ifdef _WIN32
     OPENFILENAMEA ofn;
@@ -730,7 +794,16 @@ void Board::savePGNToFile() {
     time_t t = time(0);
     tm* ltm = localtime(&t);
 
-    strftime(szFile, sizeof(szFile), "game_%Y%m%d_%H%M%S.pgn", ltm);
+    // strftime(szFile, sizeof(szFile), "game_%Y%m%d_%H%M%S.pgn", ltm);
+
+    // new filename format: White_vs_Black_YYYYMMDD.pgn
+    //std::string defaultName = prefix + std::to_string(1900 + ltm->tm_year) +
+    //std::to_string(1 + ltm->tm_mon) + std::to_string(ltm->tm_mday) + ".pgn";
+	char timeBuf[64];
+    strftime(timeBuf, sizeof(timeBuf), "%Y%m%d_%H%M%S.pgn", ltm);
+    std::string defaultName = prefix + std::string(timeBuf);
+
+    strncpy(szFile, defaultName.c_str(), sizeof(szFile));
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
@@ -749,9 +822,10 @@ void Board::savePGNToFile() {
 #else
     time_t t = time(0);
     tm* ltm = localtime(&t);
-    char buf[64];
-    strftime(buf, sizeof(buf), "game_%Y%m%d_%H%M%S.pgn", ltm);
-    filename = buf;
+    char buf[128];
+	// prefix for linux/mac filename as well
+    strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S.pgn", ltm);
+	filename = prefix + std::string(buf);
 #endif
 
     std::ofstream outFile(filename);
@@ -759,46 +833,99 @@ void Board::savePGNToFile() {
         // Use the centralized helper function to get the full formatted PGN
         // This ensures the file contains headers (Event, Site, Date, etc.) 
         // as well as the move sequence and result.
-        outFile << getFullPGNString();
+        outFile << getFullPGNString(details);
 
         outFile.close();
         std::cout << "PGN exported to file successfully." << std::endl;
     }
 }
 
-std::string Board::getFullPGNString() {
+
+//std::string Board::getFullPGNString() {
+//    if (gameRules.moveHistory.empty()) return "";
+//
+//    // get current local time 
+//    auto now = std::chrono::system_clock::now();
+//    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+//    std::tm ltm;
+//
+//    // use safe version of localtime based on platform
+//#ifdef _WIN32
+//    localtime_s(&ltm, &now_c);
+//#else
+//    ltm = *std::localtime(&now_c);
+//#endif
+//
+//    std::string p = "";
+//    p += "[Event \"Casual Game\"]\n";
+//    p += "[Site \"Chesstracted\"]\n";
+//
+//    // format date as YYYY.MM.DD
+//    std::stringstream dateStream;
+//    dateStream << std::put_time(&ltm, "%Y.%m.%d");
+//    p += "[Date \"" + dateStream.str() + "\"]\n";
+//
+//    // add time header 
+//    std::stringstream timeStream;
+//    timeStream << std::put_time(&ltm, "%H:%M:%S");
+//    p += "[Time \"" + timeStream.str() + "\"]\n";
+//
+//    p += "[White \"White Player\"]\n";
+//    p += "[Black \"Black Player\"]\n";
+//
+//    // determine result
+//    std::string res = "*";
+//    if (gameRules.gameOver) {
+//        if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
+//        else if (gameRules.resultText.find("BLACK WINS") != std::string::npos) res = "0-1";
+//        else if (gameRules.resultText.find("DRAW") != std::string::npos) res = "1/2-1/2";
+//    }
+//    p += "[Result \"" + res + "\"]\n\n";
+//
+//    // build move list
+//    int moveNum = 1;
+//    for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
+//        if (gameRules.moveHistory[i].isWhiteMove) {
+//            p += std::to_string(moveNum) + ". " + gameRules.moveHistory[i].notation + " ";
+//        }
+//        else {
+//            p += gameRules.moveHistory[i].notation + " ";
+//            moveNum++;
+//        }
+//    }
+//
+//    // append final result to the move list
+//    p += res + "\n";
+//
+//    return p;
+//}
+std::string Board::getFullPGNString(const MatchDetails& details) {
     if (gameRules.moveHistory.empty()) return "";
 
-    // get current local time 
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-    std::tm ltm;
-
-    // use safe version of localtime based on platform
+	// date logic: if custom date provided in details, use it; otherwise use current local date
+    std::string finalDate = details.customDate;
+    if (finalDate.empty()) {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm ltm;
 #ifdef _WIN32
-    localtime_s(&ltm, &now_c);
+        localtime_s(&ltm, &now_c);
 #else
-    ltm = *std::localtime(&now_c);
+        ltm = *std::localtime(&now_c);
 #endif
+        std::stringstream dateStream;
+        dateStream << std::put_time(&ltm, "%Y.%m.%d");
+        finalDate = dateStream.str();
+    }
 
     std::string p = "";
-    p += "[Event \"Casual Game\"]\n";
+    p += "[Event \"" + details.eventName + "\"]\n";
     p += "[Site \"Chesstracted\"]\n";
+    p += "[Date \"" + finalDate + "\"]\n";
+    p += "[White \"" + details.white + "\"]\n";
+    p += "[Black \"" + details.black + "\"]\n";
 
-    // format date as YYYY.MM.DD
-    std::stringstream dateStream;
-    dateStream << std::put_time(&ltm, "%Y.%m.%d");
-    p += "[Date \"" + dateStream.str() + "\"]\n";
-
-    // add time header 
-    std::stringstream timeStream;
-    timeStream << std::put_time(&ltm, "%H:%M:%S");
-    p += "[Time \"" + timeStream.str() + "\"]\n";
-
-    p += "[White \"White Player\"]\n";
-    p += "[Black \"Black Player\"]\n";
-
-    // determine result
+    // result
     std::string res = "*";
     if (gameRules.gameOver) {
         if (gameRules.resultText.find("WHITE WINS") != std::string::npos) res = "1-0";
@@ -807,7 +934,7 @@ std::string Board::getFullPGNString() {
     }
     p += "[Result \"" + res + "\"]\n\n";
 
-    // build move list
+	// moves and comments
     int moveNum = 1;
     for (size_t i = 0; i < gameRules.moveHistory.size(); ++i) {
         if (gameRules.moveHistory[i].isWhiteMove) {
@@ -819,11 +946,15 @@ std::string Board::getFullPGNString() {
         }
     }
 
-    // append final result to the move list
-    p += res + "\n";
+	// if thre is a comment provided in details, append it at the end of the move list before the result
+    if (!details.comment.empty()) {
+        p += "{" + details.comment + "} ";
+    }
 
+    p += res + "\n";
     return p;
 }
+
 
 void Board::copyToClipboard(const std::string& text) {
 #ifdef _WIN32

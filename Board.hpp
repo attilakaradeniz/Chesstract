@@ -3,13 +3,21 @@
 #include <SFML/Audio.hpp>
 #include <map>
 #include <vector>
-//#include <string>
+#include <string>
 #include "ChessRules.hpp" 
 #include "GameDatabase.hpp" 
 
 struct PieceSource {
     int col;
     int row;
+};
+
+struct MatchDetails {
+    std::string white = "White Player";
+    std::string black = "Black Player";
+    std::string eventName = "Casual Game";
+	std::string customDate = ""; // if empty, current date will be used in PGN
+	std::string comment = "";    // if empty, no comment will be added to PGN
 };
 
 class Board {
@@ -29,7 +37,8 @@ public:
     void flipBoard();
     void toggleCoordinates();
     void calculateValidMoves(int startRow, int startCol);
-    void savePGNToFile();
+    //void savePGNToFile();
+	void savePGNToFile(const MatchDetails& details);
 
     // functions for drag & drop
     void updateMousePos(sf::Vector2f pos) { mousePos = pos; }
@@ -90,7 +99,8 @@ private:
     std::string buildNotation(sf::Vector2i start, sf::Vector2i end, PieceType movingPiece, PieceType targetPiece);
 
     // full pgn
-    std::string getFullPGNString();
+    //std::string getFullPGNString();
+    std::string getFullPGNString(const MatchDetails& details);
     // moves to clipboard
     void copyToClipboard(const std::string& text);
     //helper func to extract the pure moves
