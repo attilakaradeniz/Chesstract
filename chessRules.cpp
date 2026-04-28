@@ -50,7 +50,7 @@ bool ChessRules::isSquareAttacked(int targetRow, int targetCol, bool attackerIsW
     int rowDirs[] = { -1, 1, 0, 0, -1, -1, 1, 1 };
     int colDirs[] = { 0, 0, -1, 1, -1, 1, -1, 1 };
 
-    // Sliding Pieces
+    // sliding Pieces
     for (int i = 0; i < 8; ++i) {
         int r = targetRow + rowDirs[i];
         int c = targetCol + colDirs[i];

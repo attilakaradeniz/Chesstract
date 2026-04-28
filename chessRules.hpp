@@ -46,7 +46,7 @@ public:
     int currentMoveIndex;
     MoveRecord pendingPromotionMove;
 
-    // Logic functions
+    // logic functions
     bool isWhite(PieceType type);
     bool isMoveValid(int startRow, int startCol, int endRow, int endCol);
     bool isSquareAttacked(int row, int col, bool attackerIsWhite);

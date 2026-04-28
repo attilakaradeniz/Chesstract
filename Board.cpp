@@ -785,7 +785,7 @@ std::string Board::getFullPGNString() {
     dateStream << std::put_time(&ltm, "%Y.%m.%d");
     p += "[Date \"" + dateStream.str() + "\"]\n";
 
-    // add time header (optional but helps with the 2-hour offset check)
+    // add time header 
     std::stringstream timeStream;
     timeStream << std::put_time(&ltm, "%H:%M:%S");
     p += "[Time \"" + timeStream.str() + "\"]\n";
@@ -814,7 +814,7 @@ std::string Board::getFullPGNString() {
         }
     }
 
-    //aAppend final result to the move list
+    // append final result to the move list
     p += res + "\n";
 
     return p;
@@ -853,25 +853,25 @@ std::vector<std::string> Board::extractMovesFromPGN(const std::string& rawPgn) {
     std::string cleanedStr = "";
     bool inHeader = false;
 
-    // Step 1: Remove all headers (anything between '[' and ']')
+    // remove all headers (anything between '[' and ']')
     for (char c : rawPgn) {
         if (c == '[') inHeader = true;
         if (!inHeader) cleanedStr += c;
         if (c == ']') inHeader = false;
     }
 
-    // Step 2: Tokenize the remaining string by spaces
+    // tokenize the remaining string by spaces
     std::stringstream ss(cleanedStr);
     std::string token;
 
     while (ss >> token) {
-        // Ignore move numbers (e.g., "1.", "12.")
+        // ignore move numbers (e.g., "1.", "12.")
         if (token.find('.') != std::string::npos) continue;
 
-        // Ignore game results
+        // ignore game results
         if (token == "1-0" || token == "0-1" || token == "1/2-1/2" || token == "*") continue;
 
-        // If it passed the checks, it's a valid move notation!
+        // if it passed the checks, it's a valid move notation!
         pureMoves.push_back(token);
     }
 
@@ -883,12 +883,12 @@ bool Board::playNotationMove(const std::string& move) {
 
     std::string cleanMove = move;
 
-    // 1. Strip check/mate symbols (+, ++, #) safely
+    // strip check/mate symbols (+, ++, #) safely
     while (!cleanMove.empty() && (cleanMove.back() == '+' || cleanMove.back() == '#')) {
         cleanMove.pop_back();
     }
 
-    // 2. Handle Promotion (e.g., h8=Q)
+    // handle Promotion (e.g., h8=Q)
     PieceType promotedPiece = PieceType::Empty;
     size_t eqPos = cleanMove.find('=');
     if (eqPos != std::string::npos) {
@@ -898,11 +898,11 @@ bool Board::playNotationMove(const std::string& move) {
         else if (pChar == 'B') promotedPiece = gameRules.whiteTurn ? PieceType::W_Bishop : PieceType::B_Bishop;
         else if (pChar == 'N') promotedPiece = gameRules.whiteTurn ? PieceType::W_Knight : PieceType::B_Knight;
 
-        // Remove the promotion suffix so coordinate extraction works seamlessly
+        // remove the promotion suffix 
         cleanMove = cleanMove.substr(0, eqPos);
     }
 
-    // 3. Handle Castling
+    // handle Castling
     if (cleanMove == "O-O" || cleanMove == "O-O-O") {
         int row = gameRules.whiteTurn ? 7 : 0;
         int targetCol = (cleanMove == "O-O") ? 6 : 2;
@@ -912,16 +912,16 @@ bool Board::playNotationMove(const std::string& move) {
         return true;
     }
 
-    // 4. Strip 'x' (capture indicator) to make string length predictable
+    // strip 'x' (capture indicator) to make string length predictable
     std::string noX = "";
     for (char ch : cleanMove) if (ch != 'x') noX += ch;
     cleanMove = noX;
 
-    // 5. Extract Target Coordinates
+    // extract target coordinates
     int targetRow = 8 - (cleanMove.back() - '0');
     int targetCol = cleanMove[cleanMove.size() - 2] - 'a';
 
-    // 6. Identify Piece Type and Disambiguation (e.g. Rad1 -> Rook on a-file)
+    // identify piece type and disambiguation (e.g. Rad1 -> Rook on a-file)
     char firstChar = cleanMove[0];
     bool isPawn = !std::isupper(firstChar);
     PieceType movingType = PieceType::Empty;
@@ -942,7 +942,7 @@ bool Board::playNotationMove(const std::string& move) {
         else if (firstChar == 'B') movingType = gameRules.whiteTurn ? PieceType::W_Bishop : PieceType::B_Bishop;
         else if (firstChar == 'N') movingType = gameRules.whiteTurn ? PieceType::W_Knight : PieceType::B_Knight;
 
-        // Disambiguation logic (e.g. Rad1 -> 'a' is at index 1)
+        // disambiguation logic (e.g. Rad1 -> 'a' is at index 1)
         if (cleanMove.size() >= 4) {
             char d1 = cleanMove[1];
             if (d1 >= 'a' && d1 <= 'h') disFile = d1;
@@ -950,30 +950,30 @@ bool Board::playNotationMove(const std::string& move) {
         }
     }
 
-    // 7. Find the matching piece on the board
+    // find the matching piece on the board
     for (int r = 0; r < 8; ++r) {
         for (int c = 0; c < 8; ++c) {
             if (gameRules.grid[r][c] == movingType) {
-                // Apply Disambiguation filters
+                // apply Disambiguation filters
                 if (disFile != '\0' && c != (disFile - 'a')) continue;
                 if (disRank != '\0' && r != (8 - (disRank - '0'))) continue;
 
-                // Check legal move
+                // check legal move
                 if (gameRules.isMoveValid(r, c, targetRow, targetCol)) {
                     selectedSquare = sf::Vector2i(c, r);
                     PieceType targetPiece = gameRules.grid[targetRow][targetCol];
                     bool isCapture = (targetPiece != PieceType::Empty) || (isPawn && c != targetCol);
 
-                    // Execute basic move logic
+                    // execute basic move logic
                     executeMove(targetRow, targetCol, movingType, targetPiece, move, isCapture);
 
-                    // 8. Auto-resolve Promotion bypassing the UI pause!
+                    // auto-resolve promotion bypassing the UI pause!
                     if (isPromoting && promotedPiece != PieceType::Empty) {
                         gameRules.grid[targetRow][targetCol] = promotedPiece;
-                        gameRules.pendingPromotionMove.notation = move; // Keep full notation e.g., h8=Q#
+                        gameRules.pendingPromotionMove.notation = move; // keep full notation e.g., h8=Q#
                         gameRules.pendingPromotionMove.promotedTo = promotedPiece;
 
-                        // Insert into history
+                        // insert into history
                         if (gameRules.currentMoveIndex < (int)gameRules.moveHistory.size() - 1) {
                             gameRules.moveHistory.erase(gameRules.moveHistory.begin() + (gameRules.currentMoveIndex + 1), gameRules.moveHistory.end());
                         }

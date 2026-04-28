@@ -49,13 +49,13 @@ bool GameDatabase::saveGame(const std::string& white, const std::string& black,
         "VALUES (datetime('now'), ?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
 
-    // 1. SQL query
+    // SQL query
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
         return false;
     }
 
-    // 2. filling the parameters (question marks) with actual vallues 
+    // filling the parameters (question marks) with actual vallues 
     std::string seq = generateSequence(history);
     sqlite3_bind_text(stmt, 1, white.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, black.c_str(), -1, SQLITE_TRANSIENT);
@@ -63,7 +63,7 @@ bool GameDatabase::saveGame(const std::string& white, const std::string& black,
     sqlite3_bind_text(stmt, 4, seq.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 5, fullPgn.c_str(), -1, SQLITE_TRANSIENT);
 
-    // 3. execute query
+    // execute query
     bool success = (sqlite3_step(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);
 
@@ -82,51 +82,51 @@ std::vector<GameEntry> GameDatabase::searchByOpening(const std::string& openingS
     const char* sql = "SELECT ID, Date, White, Black, Result, Sequence, FullPGN FROM Games WHERE Sequence LIKE ?;";
     sqlite3_stmt* stmt;
 
-    // Prepare the SQL statement
+    // prepare the SQL statement
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         std::cerr << "Failed to prepare search statement: " << sqlite3_errmsg(db) << std::endl;
         return results; // Return empty list on error
     }
 
-    // Bind the query string to the placeholder (?)
+    // binding the query string to the placeholder (?)
     sqlite3_bind_text(stmt, 1, querySeq.c_str(), -1, SQLITE_TRANSIENT);
 
-    // Execute and iterate through the matching rows
+    // execute and iterate through the matching rows
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         GameEntry entry;
 
-        // Extract ID
+        // extract ID
         entry.id = sqlite3_column_int(stmt, 0);
 
-        // Extract Date safely
+        // extract Date safely
         const unsigned char* dateText = sqlite3_column_text(stmt, 1);
         if (dateText) entry.date = reinterpret_cast<const char*>(dateText);
 
-        // Extract White Player safely
+        // extract White Player safely
         const unsigned char* whiteText = sqlite3_column_text(stmt, 2);
         if (whiteText) entry.whitePlayer = reinterpret_cast<const char*>(whiteText);
 
-        // Extract Black Player safely
+        // extract Black Player safely
         const unsigned char* blackText = sqlite3_column_text(stmt, 3);
         if (blackText) entry.blackPlayer = reinterpret_cast<const char*>(blackText);
 
-        // Extract Result safely
+        // extract Result safely
         const unsigned char* resultText = sqlite3_column_text(stmt, 4);
         if (resultText) entry.result = reinterpret_cast<const char*>(resultText);
 
-        // Extract Sequence safely
+        // extract Sequence safely
         const unsigned char* seqText = sqlite3_column_text(stmt, 5);
         if (seqText) entry.notationSequence = reinterpret_cast<const char*>(seqText);
 
-        // Extract Full PGN safely
+        // extract Full PGN safely
         const unsigned char* pgnText = sqlite3_column_text(stmt, 6);
         if (pgnText) entry.fullPgn = reinterpret_cast<const char*>(pgnText);
 
-        // Add the populated entry to our results list
+        // add the populated entry to results list
         results.push_back(entry);
     }
 
-    // Clean up
+    // clean up
     sqlite3_finalize(stmt);
 
     return results;
@@ -134,7 +134,7 @@ std::vector<GameEntry> GameDatabase::searchByOpening(const std::string& openingS
 
  GameEntry GameDatabase::getGameById(int id) {
     GameEntry entry;
-    entry.id = -1; // Default to -1 to indicate "not found" if the query fails
+    entry.id = -1; // default to -1 to indicate "not found" if the query fails
 
     const char* sql = "SELECT ID, Date, White, Black, Result, Sequence, FullPGN FROM Games WHERE ID = ?;";
     sqlite3_stmt* stmt;
@@ -144,7 +144,7 @@ std::vector<GameEntry> GameDatabase::searchByOpening(const std::string& openingS
         return entry;
     }
 
-    // Bind the integer ID to the query
+    // bind the integer ID to the query
     sqlite3_bind_int(stmt, 1, id);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
